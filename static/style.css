@@ -1,11 +1,41 @@
-.container {
-  font-family: "Fira Sans", sans-serif;
-  font-weight: 500;
-  font-style: normal;
+/* overall page bg like your screenshot */
+body {
+    background-color: #7ff3f3; /* light turquoise */
+    margin: 0;
+    font-family: "Fira Sans", sans-serif;
 }
-.navbar-brand {
-  font-size: 50px;
+
+/* navbar styling */
+.my-navbar {
+    background-color: #ffffff;
+    border-top: 4px solid #7ff3f3;
+    padding-top: 8px;
+    padding-bottom: 8px;
 }
-.nav-link {
-  font-size: 20px;
+
+/* make bootstrap toggler icon visible on light bg */
+.navbar-toggler {
+    border-color: rgba(0,0,0,0.1);
 }
+.navbar-toggler-icon {
+    filter: invert(0.4); /* darken icon a bit */
+}
+
+/* logo size (tweak width if you want it smaller/bigger) */
+.brand-logo {
+    height: 60px;   /* try 50–60px, adjust to taste */
+    width: auto;
+    display: block;
+}
+
+/* spacing between logo and links */
+.navbar-nav .nav-link {
+    margin-left: 16px;
+    font-weight: 500;
+}
+
+/* active link style */
+.navbar-nav .nav-link.active {
+    font-weight: 700;
+}
+

@@ -28,28 +28,80 @@
 
     <body>
         <header>
-            <!-- place navbar here -->
-            <nav class="navbar navbar-expand-lg bg-body-tertiary">
+        <nav class="navbar navbar-expand-lg my-navbar">
             <div class="container">
-                <a class="navbar-brand" href="#">MAYJEEPBA?</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+
+            <!-- LOGO -->
+            <a class="navbar-brand d-flex align-items-center" href="#">
+                <picture class="brand-picture">
+                <source srcset="{{ url_for('static', filename='images/jeep_icon.png') }}" type="image/png" />
+                <img
+                    src="{{ url_for('static', filename='images/jeep_icon.png') }}"
+                    alt="MyJeepBa Logo"
+                    class="brand-logo"
+                />
+                </picture>
+            </a>
+
+            <!-- TOGGLER -->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+                    aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            </button>
+
+            <!-- LINKS -->
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-                    <li class="nav-item">
+                <li class="nav-item">
                     <a class="nav-link active" aria-current="page" href="#">Home</a>
-                    </li>
-                    <li class="nav-item">
-                    <a class="nav-link" href="#">Link</a>
-                    </li>
+                </li>
+                <li class="nav-item"><a class="nav-link" href="#">Link</a></li>
+                <li class="nav-item"><a class="nav-link" href="#">Link</a></li>
+                <li class="nav-item"><a class="nav-link" href="#">Link</a></li>
+                <li class="nav-item"><a class="nav-link" href="#">Link</a></li>
                 </ul>
-                </div>
             </div>
-            </nav>
+            </div>
+        </nav>
         </header>
 
-        <main></main>
+        <main>
+            <section class="hero-section bg-primary py-5">
+                <div class="container">
+                    <div class="row align-items-center">
+
+                        <!-- LEFT SIDE TEXT -->
+                        <div class="col-md-6">
+                            <h1 class="display-4 fw-bold text-white">
+                                Send packages hassle-free with MAYJEEPBA?
+                            </h1>
+                            <p class="lead text-white mt-3">
+                                Fast, reliable, and easy transportation.
+                            </p>
+
+                            <div class="d-flex gap-3 mt-4">
+                                <a href="#" class="btn btn-dark btn-lg">Download App</a>
+                            </div>
+                        </div>
+
+                        <!-- RIGHT SIDE IMAGE -->
+                        <div class="col-md-6 text-center">
+                            <picture>
+                                <source srcset="{{ url_for('static', filename='images/jeep.png') }}" type="image/svg+xml" />
+                                <img
+                                    src="{{ url_for('static', filename='images/jeep.png') }}"
+                                    class="img-fluid"
+                                    alt="image desc"
+                                />
+                            </picture>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+
+        </main>
         <footer>
             <!-- place footer here -->
              
