@@ -1,10 +1,37 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends "base.html" %}
+{% block title %} HOME {% endblock %}
+{% block content %}
+<section class="hero-section bg-primary py-5">
+    <div class="container">
+        <div class="row align-items-center">
 
-</body>
-</html>
+            <!-- LEFT SIDE TEXT -->
+            <div class="col-md-6">
+                <h1 class="display-4 fw-bold text-white">
+                    Send packages hassle-free with MAYJEEPBA?
+                </h1>
+                <p class="lead text-white mt-3">
+                    Fast, reliable, and easy transportation.
+                </p>
+
+                <div class="d-flex gap-3 mt-4">
+                    <a href="{{ url_for('sigin') }}" class="btn btn-dark btn-lg">SIGN IN</a>
+                </div>
+            </div>
+
+            <!-- RIGHT SIDE IMAGE -->
+            <div class="col-md-6 text-center">
+                <picture>
+                    <source srcset="{{ url_for('static', filename='images/jeep.png') }}" type="image/svg+xml" />
+                    <img
+                        src="{{ url_for('static', filename='images/jeep.png') }}"
+                        class="img-fluid"
+                        alt="image desc"
+                    />
+                </picture>
+            </div>
+
+        </div>
+    </div>
+</section>
+{% endblock %}
