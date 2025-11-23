@@ -59,7 +59,7 @@ class RegisterForm(FlaskForm):
 class LoginForm(FlaskForm):
     email = StringField (
         "Email",
-        validators=[DataRequired()]
+        validators=[DataRequired(), Email()]
     ) # it use gmail to able to login
 
     password = PasswordField (
