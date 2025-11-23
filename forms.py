@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm # this for security and the secret key
 from wtforms import StringField, PasswordField, SubmitField, SelectField# for the function each of this have their own action
-from wtforms.validators import DataRequired, Email, Length, EqualTo # like role to make sure that data is valid
+from wtforms.validators import DataRequired, Length, Email, EqualTo # like role to make sure that data is valid
 
 
 """
@@ -59,7 +59,7 @@ class RegisterForm(FlaskForm):
 class LoginForm(FlaskForm):
     email = StringField (
         "Email",
-        validators=[DataRequired(), Email()]
+        validators=[DataRequired()]
     ) # it use gmail to able to login
 
     password = PasswordField (
