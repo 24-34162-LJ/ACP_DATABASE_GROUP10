@@ -1,8 +1,7 @@
 from flask import Flask, render_template, redirect, url_for, session, request, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from forms import RegisterForm, LoginForm
-from models import db, User
-
+from models import db, User, Terminals
 
 app = Flask(__name__) # to connect the app.py to the models.py
 
@@ -13,9 +12,16 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False # this to remove unessary t
 app.config['WTF_CSRF_ENABLED'] = False
 db.init_app(app)
 
+
 @app.route('/home')
 def home():
   return render_template("index.html")
+
+@app.route('/view')
+def view():
+    users = User.query.all()
+    terminals = Terminals.query.all()
+    return render_template("view_database.html", users=users, terminals=terminals)
 
 @app.route('/login', methods=['POST', 'GET'])
 def login():
@@ -47,6 +53,7 @@ def login():
                 return redirect(url_for("operator"))
             elif session['role'] == 'Admin':
                 return redirect(url_for('admin'))
+
         else:
             flash("Invalid email or password.", "danger")
 
@@ -111,10 +118,26 @@ def operator():
 def admin():
   return render_template("admin.html")
 
-if __name__ == "__main__":
-  # this create first all the table in out database it is a content manager
-  with app.app_context():
-    db.create_all()
+@app.route("/seat")
+def seat():
+    return render_template("seat.html")
 
-  app.run(debug=True)
+if __name__ == "__main__":
+    with app.app_context():
+        #db.drop_all()
+        db.create_all()
+
+        if not Terminals.query.first():
+            t1 = Terminals(
+                terminal_name="SM Lipa Terminal",
+                location="SM Lipa, Batangas"
+            )
+            t2 = Terminals(
+                terminal_name="Robinsons Lipa Terminal",
+                location="Robinsons Lipa, Batangas"
+            )
+            db.session.add_all([t1, t2])
+            db.session.commit()
+            print("Sample terminals added.")
+    app.run(debug=True)
 

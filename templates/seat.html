@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %} Seat Availability {% endblock %}
+{% block content %}
+<h1>Jeepney Seat Availability</h1>
+    {% for jeepney in jeepneys %}
+<div class="jeepney-card">
+    <div class="seats">
+        Total seats: <strong>{{ jeepney.total_seats }}</strong><br>
+        Occupied: <strong>{{ jeepney.occupied_seats }}</strong><br>
+        Available: <span class="available">{{ jeepney.available_seats }}</span><br>
+
+        {% if jeepney.available_seats == 0 %}
+            <span class="status-badge status-full">Full</span>
+        {% elif jeepney.available_seats <= 3 %}
+            <span class="status-badge status-limited">Few Seats Left</span>
+        {% else %}
+            <span class="status-badge status-available">Available</span>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+<button type="button" class="btn btn-outline-primary"><a href="{{ url_for('commuter') }}">view_data</a></button>
+{% endblock %}

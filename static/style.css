@@ -39,3 +39,69 @@ body {
     font-weight: 700;
 }
 
+/* for jeap seat */
+h1 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.jeepney-container {
+    max-width: 900px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 15px;
+}
+
+.jeepney-card {
+    background: #ffffff;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.jeepney-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.route-name {
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.plate-number {
+    font-size: 0.9rem;
+    color: #555;
+}
+
+.seats {
+    margin-top: 8px;
+    font-size: 0.95rem;
+}
+
+.available {
+    font-weight: bold;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    color: #fff;
+}
+
+.status-available {
+    background: #28a745; /* green */
+}
+
+.status-limited {
+    background: #ffc107; /* yellow */
+}
+
+.status-full {
+    background: #dc3545; /* red */
+}
