@@ -1,6 +1,8 @@
-from email.policy import default
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+from sqlalchemy.sql import func
+from sqlalchemy import text
+
 
 db = SQLAlchemy()
 
@@ -28,6 +30,23 @@ class User(db.Model):
         default=datetime.utcnow
     )
 
+    favorite_pk = db.relationship(
+        "Userfavorite",
+        foreign_keys='Userfavorite.user_id',
+        back_populates='favorite_fk'
+    )
+
+    notification_pk = db.relationship(
+        "Notification",
+        foreign_keys='Notification.user_id',
+        back_populates='notification_fk'
+    )
+
+    audit_user_pk = db.relationship(
+        "Auditlog",
+        foreign_keys='Auditlog.user_id',
+        back_populates='audit_user_fk'
+    )
 
     def __repr__(self):
         return f"<User {self.full_name}>"
@@ -71,6 +90,17 @@ class Terminal(db.Model):
         back_populates = "destination_fk"
     )
 
+    terminal_jeep_pk = db.relationship(
+        "TerminalJeepneys",
+        foreign_keys='TerminalJeepneys.terminal_id',
+        back_populates='terminal_jeep_fk'
+    )
+
+    favorite_terminal_pk = db.relationship(
+        "Userfavorite",
+        foreign_keys='Userfavorite.terminal_id',
+        back_populates='favorite_terminal_fk'
+    )
 
     def __repr__(self):
         return f"<terminal {self.terminal_name}>"
@@ -117,7 +147,11 @@ class Route(db.Model):
         back_populates = "route_fk"
     )
 
-
+    favorite_route_pk = db.relationship(
+        "Userfavorite",
+        foreign_keys='Userfavorite.route_id',
+        back_populates='favorite_route_fk'
+    )
 
 # jeepneys
 
@@ -128,7 +162,7 @@ class Jeepney(db.Model):
     plate_number = db.Column(db.String(20), nullable=False)
     capacity = db.Column(db.Integer, nullable=False)
     status = db.Column(
-        db.Enum('Available', 'En Route', 'Maintenance', 'Inactive'),
+        db.Enum('Available', 'En Route', 'Maintenance', 'Inactive', name='jeep_status'),
         nullable=False,
         default='Available'
     )
@@ -137,6 +171,12 @@ class Jeepney(db.Model):
         "Trip",
         foreign_keys = "Trip.jeepney_id",
         back_populates = "jeepney_fk"
+    )
+
+    jeep_jeep_pk = db.relationship(
+        "TerminalJeepneys",
+        foreign_keys= "TerminalJeepneys.jeepney_id",
+        back_populates='jeep_jeep_fk'
     )
 
 class Trip(db.Model):
@@ -174,7 +214,7 @@ class Trip(db.Model):
     arrival_time = db.Column(db.DateTime, nullable=True)  # or False if required
 
     status = db.Column(
-        db.Enum('Scheduled', 'Waiting', 'En Route', 'Arrived', 'Completed', 'Cancelled'),
+        db.Enum('Scheduled', 'Waiting', 'En Route', 'Arrived', 'Completed', 'Cancelled', name='trip_status'),
         nullable=False,
         default='Scheduled'
     )
@@ -204,21 +244,220 @@ class Trip(db.Model):
         back_populates='destination_trip_pk'
     )
 
+    seats_pk = db.relationship(
+        "Seat",
+        back_populates="trip_fk",
+        uselist=False
+    )
 
-"""
-class Terminals(db.Model):
-    terminal_id = db.Column(db.Integer, primary=True) #terminal id
-    terminal_name = db.Column(db.String(100), nullable=True) # for terminal name
-    terminal_location = db.Column(db.String(150), nullable=True) # terminal location
-    #
-    terminal_status = db.Column(db.String(50), nullable=True) # terminal status
+    notification_trip_pk = db.relationship(
+        "Notification",
+        foreign_keys='Notification.trip_id',
+        back_populates="notification_trip_fk"
+    )
 
-class Routes(db.Model):
-    route_id = db.Column(db.Integer, primary=True)
-    route_name = db.Column(db.String(100), nullable=True)
-    #
-    #
-    estimated_time = db.Column(db.String(50), nullable=True)
-"""
+# trip seats
+class Seat(db.Model):
+
+    __tablename__ = "seats"
+
+    trip_seat_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+
+    trip_id = db.Column(
+        db.Integer,
+        db.ForeignKey('trips.trip_id'),
+        nullable=False
+    )
+
+    total_seats = db.Column(db.Integer, nullable=False)
+    available_seats = db.Column(db.Integer, nullable=False)
+    occupied_seats = db.Column(db.Integer, nullable=False)
+
+    last_updated = db.Column(
+        db.DateTime,
+        nullable=False,
+        server_default=func.now(),  # DEFAULT CURRENT_TIMESTAMP
+        onupdate=func.now()  # updates timestamp when row changes
+    )
+
+    trip_fk = db.relationship(
+        "Trip",
+        foreign_keys=[trip_id],
+        back_populates="seats_pk"
+    )
 
 
+# terminal jeepneys
+class TerminalJeepneys(db.Model):
+    __tablename__ = "terminaljeeps"
+
+    terminal_jeep_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    terminal_id = db.Column(
+        db.Integer,
+        db.ForeignKey('terminals.terminal_id'),
+        nullable=False
+    )
+    jeepney_id = db.Column(
+        db.Integer,
+        db.ForeignKey('jeepneys.jeepney_id'),
+        nullable=False
+    )
+    arrival_time = db.Column(db.DateTime, nullable=False)
+    departure_time = db.Column(db.DateTime, nullable=True)
+
+    status = db.Column(
+        db.Enum('Waiting', 'Boarding', 'Departed', 'Arrived', name='terminal_jeep_status'),
+        nullable=False,
+        default='Waiting'
+    )
+
+    # to relationship
+
+    terminal_jeep_fk = db.relationship(
+        "Terminal",
+        foreign_keys=[terminal_id],
+        back_populates='terminal_jeep_pk'
+    )
+
+    jeep_jeep_fk = db.relationship(
+        "Jeepney",
+        foreign_keys=[jeepney_id],
+        back_populates='jeep_jeep_pk'
+    )
+
+#user_favorites
+
+class Userfavorite(db.Model):
+
+    __tablename__ = "userfavorites"
+
+    favorite_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey('users.user_id'),
+        nullable=False
+    )
+
+    terminal_id = db.Column(
+        db.Integer,
+        db.ForeignKey('terminals.terminal_id'),
+        nullable=False
+    )
+
+    route_id = db.Column(
+        db.Integer,
+        db.ForeignKey('routes.route_id'),
+        nullable=False
+    )
+
+    label = db.Column(db.String(100), nullable=False)
+
+    date_created = db.Column(
+        db.DateTime,
+        nullable=False,
+        server_default=func.now()
+    )
+
+    # to relationship
+
+    favorite_fk = db.relationship(
+        "User",
+        foreign_keys=[user_id],
+        back_populates='favorite_pk'
+    )
+
+    favorite_terminal_fk = db.relationship(
+        "Terminal",
+        foreign_keys=[terminal_id],
+        back_populates='favorite_terminal_pk'
+    )
+
+    favorite_route_fk = db.relationship(
+        "Route",
+        foreign_keys=[route_id],
+        back_populates='favorite_route_pk'
+    )
+
+
+# notifications
+
+class Notification(db.Model):
+
+    __tablename__ = "notifications"
+
+    notification_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey('users.user_id'),
+        nullable=False
+    )
+
+
+    trip_id = db.Column(
+        db.Integer,
+        db.ForeignKey('trips.trip_id'),
+        nullable=False
+    )
+
+    type_nof = db.Column(
+        db.Enum('Arrival', 'Departure', 'FullCapacity', 'System', name='type_of'),
+        nullable=False
+    )
+
+    message = db.Column(db.String(200), nullable=False)
+    is_read = db.Column(
+        db.Boolean,
+        nullable=False,
+        server_default=text('FALSE')
+    )
+    date_sent = db.Column(
+        db.DateTime,
+        nullable=False,
+        server_default=func.now()
+    )
+
+    # to relationship
+
+    notification_fk = db.relationship(
+        "User",
+        foreign_keys=[user_id],
+        back_populates='notification_pk'
+    )
+
+    notification_trip_fk = db.relationship(
+        "Trip",
+        foreign_keys=[trip_id],
+        back_populates="notification_trip_pk"
+    )
+
+#audt_log
+
+class Auditlog(db.Model):
+
+    __tablename__ = "auditlogs"
+
+    audit_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey('users.user_id'),
+        nullable=False
+    )
+
+    table_name = db.Column(db.String(100), nullable=False)
+    record_id = db.Column(db.Integer, nullable=False)
+    action = db.Column(
+        db.Enum('INSERT','UPDATE', 'DELETE', name='actions')
+    )
+    timestamp = db.Column(
+        db.DateTime,
+        nullable=False,
+        server_default=func.now()
+    )
+    description = db.Column(db.String(255), nullable=True)
+
+    audit_user_fk = db.relationship(
+        "User",
+        foreign_keys=[user_id],
+        back_populates='audit_user_pk'
+    )
