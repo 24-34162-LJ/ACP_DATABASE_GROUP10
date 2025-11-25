@@ -2,6 +2,7 @@
 {% block title %} Operator {% endblock %}
 {% block content %}
 <h1> operator </h1>
+<button type="button" class="btn btn-outline-primary"><a class="nav-link" href="{{ url_for('Add') }}">Logout</a></button>
 {% if session.get('user_id') %}
 <button type="button" class="btn btn-outline-primary"><a class="nav-link" href="{{ url_for('logout') }}">Logout</a></button>
 {% endif %}

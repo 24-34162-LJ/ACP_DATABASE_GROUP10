@@ -1,9 +1,7 @@
 {% extends "base.html" %}
 {% block title %} Database Content {% endblock %}
 {% block content %}
-
 <h3>All Users</h3>
-
 <!-- COMMUTER TABLE -->
 <h2>Commuter Accounts</h2>
 <table border="1" cellpadding="5">
@@ -11,27 +9,24 @@
     <th>user_id</th>
     <th>first_name</th>
     <th>last_name</th>
-    <th>user_role</th>
-    <th>user_email</th>
-    <th>user_password</th>
+    <th>role</th>
+    <th>email</th>
     <th>Created At</th>
   </tr>
 
   {% for user in users %}
-    {% if user.user_role == "Commuter" %}
+    {% if user.role == "player" %}
     <tr>
       <td>{{ user.user_id }}</td>
       <td>{{ user.first_name }}</td>
       <td>{{ user.last_name }}</td>
-      <td>{{ user.user_role }}</td>
-      <td>{{ user.user_email }}</td>
-      <td>{{ user.user_password }}</td>
-      <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+      <td>Commuter</td>  {# label only #}
+      <td>{{ user.email }}</td>
+      <td>{{ user.date_created.strftime('%Y-%m-%d %H:%M') }}</td>
     </tr>
     {% endif %}
   {% endfor %}
 </table>
-
 
 <!-- VEHICLE OPERATOR TABLE -->
 <h2>Vehicle Operator Accounts</h2>
@@ -40,27 +35,24 @@
     <th>user_id</th>
     <th>first_name</th>
     <th>last_name</th>
-    <th>user_role</th>
-    <th>user_email</th>
-    <th>user_password</th>
+    <th>role</th>
+    <th>email</th>
     <th>Created At</th>
   </tr>
 
   {% for user in users %}
-    {% if user.user_role == "Vehicle Operator" %}
+    {% if user.role == "operator" %}
     <tr>
       <td>{{ user.user_id }}</td>
       <td>{{ user.first_name }}</td>
       <td>{{ user.last_name }}</td>
-      <td>{{ user.user_role }}</td>
-      <td>{{ user.user_email }}</td>
-      <td>{{ user.user_password }}</td>
-      <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+      <td>Vehicle Operator</td>  {# label only #}
+      <td>{{ user.email }}</td>
+      <td>{{ user.date_created.strftime('%Y-%m-%d %H:%M') }}</td>
     </tr>
     {% endif %}
   {% endfor %}
 </table>
-
 
 <h2>All Terminals</h2>
 <table border="1" cellpadding="5">

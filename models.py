@@ -11,12 +11,13 @@ class User(db.Model):
     __tablename__ = "users"
 
     user_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    full_name = db.Column(db.String(100), nullable=False)
+    first_name = db.Column(db.String(50), nullable=False)
+    last_name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(100), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
 
     role = db.Column(
-        db.Enum('player', 'operator', 'admin', name='user_roles'),
+        db.Enum('player', 'operator', 'viewer', 'admin', name='user_roles'),
         nullable=False,
         default='player'
     )
@@ -29,6 +30,7 @@ class User(db.Model):
         nullable=False,
         default=datetime.utcnow
     )
+    # relations
 
     favorite_pk = db.relationship(
         "Userfavorite",

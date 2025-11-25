@@ -34,7 +34,8 @@ class RegisterForm(FlaskForm):
 
     role = SelectField (
         "Select Role",
-        choices=[("Commuter", "Commuter"), ("Vehicle Operator", "Vehicle Operator"), ("Admin", "Admin")],
+        choices=[("player", "player"), ("operator", "operator")],
+        default='player',
         validators=[DataRequired()]
     ) # to know the role of the user
 
@@ -68,5 +69,21 @@ class LoginForm(FlaskForm):
     ) #
     submit = SubmitField("Login")
 
+class AddTerminal(FlaskForm):
+    terminal_name = StringField (
+        "terminal name",
+        validators=[DataRequired()]
+    )
+    location = StringField (
+        "terminal location",
+        validators=[DataRequired()]
+    )
+    status = SelectField(
+        "Select status",
+        choices=[("active","active"),("inactive","inactive")],
+        default='active',
+        validators=[DataRequired()]
+    )
+    submit = SubmitField("add terminal")
 
 

@@ -1,12 +1,12 @@
 from flask import Flask, render_template, redirect, url_for, session, request, flash
 from werkzeug.security import generate_password_hash, check_password_hash
-from forms import RegisterForm, LoginForm
-from models import db, User, Terminals
+from forms import RegisterForm, LoginForm, AddTerminal
+from models import db, User, Terminal
 
 app = Flask(__name__) # to connect the app.py to the models.py
 
 app.config['SECRET_KEY'] = 'lj123' # for security purposes
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///movies.db' # this create a database /save the data
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///jeep.db' # this create a database /save the data
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False # this to remove unessary tracking
 
 app.config['WTF_CSRF_ENABLED'] = False
@@ -20,7 +20,7 @@ def home():
 @app.route('/view')
 def view():
     users = User.query.all()
-    terminals = Terminals.query.all()
+    terminals = Terminal.query.all()
     return render_template("view_database.html", users=users, terminals=terminals)
 
 @app.route('/login', methods=['POST', 'GET'])
@@ -35,24 +35,26 @@ def login():
         email = form.email.data
         password = form.password.data
 
-        user = User.query.filter_by(user_email=email).first()
+        user = User.query.filter_by(email=email).first()
 
-        if user and check_password_hash(user.user_password, password):
+        if user and check_password_hash(user.password_hash, password):
 
             session['user_id'] = user.user_id
             session['first_name'] = user.first_name
             session['last_name'] = user.last_name
-            session['role'] = user.user_role
+            session['role'] = user.role
 
             flash('Login successful!', 'success')
 
             # Redirect based on role
-            if session['role'] == 'Commuter':
+            if session['role'] == 'player':
                 return redirect(url_for("commuter"))
-            elif session['role'] == 'Vehicle Operator':
+            elif session['role'] == 'operator':
                 return redirect(url_for("operator"))
-            elif session['role'] == 'Admin':
-                return redirect(url_for('admin'))
+            elif session['role'] == 'viewer':
+                return redirect(url_for("commuter"))
+            else:
+                return redirect(url_for("admin"))
 
         else:
             flash("Invalid email or password.", "danger")
@@ -72,20 +74,19 @@ def sign():
         email      = form.email.data
         password   = form.password.data
 
-        existing_email = User.query.filter_by(user_email=email).first()
+        existing_email = User.query.filter_by(email=email).first()
         if existing_email:
             flash("Email already registered. Try another.", "danger")
             return redirect(url_for("sign"))
 
         hashed_pw = generate_password_hash(password)
 
-        # inilization
         user = User(
             first_name=first_name,
             last_name=last_name,
-            user_role=role,
-            user_email=email,
-            user_password=hashed_pw
+            email=email,
+            password_hash=hashed_pw,
+            role=role,  # must be 'player' or 'operator'
         )
 
         db.session.add(user)  # temporary store
@@ -114,6 +115,27 @@ def commuter():
 def operator():
   return render_template("operator.html")
 
+
+@app.route("/addterminal", methods=['GET', 'POST'])
+def Add():
+    form = AddTerminal()
+
+    if form.validate_on_submit():
+        terminal_name = form.terminal_name.data
+        location = form.location.data
+
+        terminal = Terminal(
+            terminal_name=terminal_name,
+            location=location
+        )
+
+        db.session.add(terminal)
+        db.session.commit()
+        flash("data added in database")
+        return redirect(url_for("operator"))
+    return render_template("terminal.html", form=form)
+
+
 @app.route("/admin")
 def admin():
   return render_template("admin.html")
@@ -127,17 +149,36 @@ if __name__ == "__main__":
         #db.drop_all()
         db.create_all()
 
-        if not Terminals.query.first():
-            t1 = Terminals(
+        if not Terminal.query.first():
+            t1 = Terminal(
                 terminal_name="SM Lipa Terminal",
                 location="SM Lipa, Batangas"
             )
-            t2 = Terminals(
+            t2 = Terminal(
                 terminal_name="Robinsons Lipa Terminal",
                 location="Robinsons Lipa, Batangas"
             )
             db.session.add_all([t1, t2])
             db.session.commit()
             print("Sample terminals added.")
+
+        if not User.query.filter_by(email='admin@gmail.com').first():
+            admin = User(
+                first_name='Admin',
+                last_name='User',
+                email='admin@gmail.com',
+                password_hash=generate_password_hash('admin123'),
+                role='admin'  # or 'player'
+            )
+            viewer = User(
+                first_name='Viewer',
+                last_name='User',
+                email='viewer@gmail.com',
+                password_hash=generate_password_hash('viewer123'),
+                role='viewer'  # since 'viewer' is not in Enum
+            )
+            db.session.add_all([admin, viewer])
+            db.session.commit()
+
     app.run(debug=True)
 
