@@ -1,87 +1,67 @@
 {% extends "base.html" %}
 {% block title %} Database Content {% endblock %}
 {% block content %}
-<h3>All Users</h3>
-<!-- COMMUTER TABLE -->
-<h2>Commuter Accounts</h2>
-<table border="1" cellpadding="5">
-  <tr>
-    <th>user_id</th>
-    <th>first_name</th>
-    <th>last_name</th>
-    <th>role</th>
-    <th>email</th>
-    <th>Created At</th>
-  </tr>
 
-  {% for user in users %}
-    {% if user.role == "player" %}
-    <tr>
-      <td>{{ user.user_id }}</td>
-      <td>{{ user.first_name }}</td>
-      <td>{{ user.last_name }}</td>
-      <td>Commuter</td>  {# label only #}
-      <td>{{ user.email }}</td>
-      <td>{{ user.date_created.strftime('%Y-%m-%d %H:%M') }}</td>
-    </tr>
-    {% endif %}
-  {% endfor %}
-</table>
+<style>
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 35px;
+    background: white;
+}
+th, td {
+    border: 1px solid #ccc;
+    padding: 6px 10px;
+    font-size: 14px;
+}
+th {
+    background: #333;
+    color: white;
+}
+.section-title {
+    margin-top: 40px;
+    margin-bottom: 10px;
+}
+</style>
 
-<!-- VEHICLE OPERATOR TABLE -->
-<h2>Vehicle Operator Accounts</h2>
-<table border="1" cellpadding="5">
-  <tr>
-    <th>user_id</th>
-    <th>first_name</th>
-    <th>last_name</th>
-    <th>role</th>
-    <th>email</th>
-    <th>Created At</th>
-  </tr>
+<h1>📊 Complete Database Viewer</h1>
+<p>This page displays all records from your entire database.</p>
 
-  {% for user in users %}
-    {% if user.role == "operator" %}
-    <tr>
-      <td>{{ user.user_id }}</td>
-      <td>{{ user.first_name }}</td>
-      <td>{{ user.last_name }}</td>
-      <td>Vehicle Operator</td>  {# label only #}
-      <td>{{ user.email }}</td>
-      <td>{{ user.date_created.strftime('%Y-%m-%d %H:%M') }}</td>
-    </tr>
-    {% endif %}
-  {% endfor %}
-</table>
+{% macro render_table(title, items) %}
+<h2 class="section-title">{{ title }}</h2>
 
-<h2>All Terminals</h2>
-<table border="1" cellpadding="5">
-  <tr>
-    <th>Terminal ID</th>
-    <th>Terminal Name</th>
-    <th>Location</th>
-    <th>Operator</th>
-  </tr>
+{% if items|length == 0 %}
+    <p><i>No data found.</i></p>
+{% else %}
+    <table>
+        <tr>
+        {% for col in items[0].__table__.columns %}
+            <th>{{ col.name }}</th>
+        {% endfor %}
+        </tr>
 
-  {% for terminal in terminals %}
-  <tr>
-    <td>{{ terminal.terminal_id }}</td>
-    <td>{{ terminal.terminal_name }}</td>
-    <td>{{ terminal.location }}</td>
+        {% for row in items %}
+        <tr>
+            {% for col in row.__table__.columns %}
+                <td>{{ row[col.name] }}</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </table>
+{% endif %}
+{% endmacro %}
 
-    <td>
-      {% if terminal.operator %}
-        {{ terminal.operator.first_name }} {{ terminal.operator.last_name }}
-      {% else %}
-        <i>No operator assigned</i>
-      {% endif %}
-    </td>
-  </tr>
-  {% endfor %}
-</table>
 
-<button type="button" class="btn btn-outline-primary">
-    <a href="{{ url_for('admin') }}">Back</a>
-</button>
+<!-- AUTO GENERATES TABLES FOR ALL MODELS -->
+{{ render_table("Users", data.users) }}
+{{ render_table("Terminals", data.terminals) }}
+{{ render_table("Jeepneys", data.jeepneys) }}
+{{ render_table("Terminal Queue (TerminalJeepneys)", data.terminal_queue) }}
+{{ render_table("Trips", data.trips) }}
+{{ render_table("Seat Records", data.seats) }}
+{{ render_table("Routes", data.routes) }}
+{{ render_table("User Favorites", data.favorites) }}
+{{ render_table("Notifications", data.notifications) }}
+{{ render_table("Audit Logs", data.auditlogs) }}
 
 {% endblock %}

@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Jeep Terminal - 4 Terminals + Main Destination</title>
+
+  <style>
+    body { font-family: Arial, sans-serif; background:#f3f3f3; padding:20px; }
+
+    .layout {
+      display:grid;
+      grid-template-columns:230px 1fr;
+      grid-template-rows:auto auto auto;
+      gap:20px;
+    }
+
+    .panel {
+      background:#fff;
+      border-radius:8px;
+      box-shadow:0 0 5px rgba(0,0,0,.1);
+      padding:12px 15px 18px;
+    }
+
+    /* ===================== ACTIVE JEEPS (4 TERMINALS) ===================== */
+    .jeep-grid {
+      display:grid;
+      grid-template-columns:repeat(2, auto);
+      gap:50px 150px;  /* bigger spacing: row, column */
+      justify-content:center;
+      margin-top:20px;
+    }
+
+    /* base vertical jeep (facing down / front view) */
+    .jeep-vertical {
+      width:90px;
+      height:180px;
+      border-radius:60px 60px 10px 10px;
+      border:2px solid #555;
+      background:#fffde7;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:flex-end;
+      padding-bottom:8px;
+      cursor:pointer;
+      position:relative;
+      transition:0.2s;
+    }
+
+    .jeep-vertical:hover { transform:scale(1.05); }
+
+    /* windshield on top */
+    .jeep-vertical::before {
+      content:"";
+      position:absolute;
+      top:8px;
+      left:50%;
+      transform:translateX(-50%);
+      width:60px;
+      height:35px;
+      background:#d7e9ff;
+      border:2px solid #333;
+      border-radius:20px;
+    }
+
+    /* TOP JEEPS: flip (back view) */
+    .jeep-flip {
+      transform:scaleY(-1);         /* flip whole jeep */
+    }
+    .jeep-flip .terminal-label,
+    .jeep-flip .jeep-id,
+    .jeep-flip .jeep-count {
+      transform:scaleY(-1);         /* text back to normal */
+    }
+
+    .terminal-label {
+      font-size:12px;
+      margin-bottom:2px;
+    }
+    .jeep-id { font-weight:bold; font-size:13px; }
+    .jeep-count { font-size:12px; }
+
+    /* ===================== MAIN TERMINAL JEEP (CENTER) ===================== */
+    .main-jeep-wrapper {
+      display:flex;
+      justify-content:center;
+      margin-top:10px;
+    }
+
+    .main-jeep-box {
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:6px;
+    }
+
+    .main-jeep-label {
+      font-weight:bold;
+      margin-bottom:4px;
+    }
+
+    .main-jeep {
+      width:100px;
+      height:200px;
+      border-radius:65px 65px 10px 10px;
+      border:3px solid #444;
+      background:#ffe082;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:flex-end;
+      padding-bottom:10px;
+      cursor:pointer;
+      position:relative;
+      transition:0.2s;
+      box-shadow:0 4px 10px rgba(0,0,0,.2);
+    }
+
+    .main-jeep::before {
+      content:"";
+      position:absolute;
+      top:10px;
+      left:50%;
+      transform:translateX(-50%);
+      width:70px;
+      height:40px;
+      background:#d7e9ff;
+      border:2px solid #333;
+      border-radius:22px;
+    }
+
+    .main-jeep:hover {
+      transform:scale(1.04);
+    }
+
+    .main-jeep-empty {
+      opacity:0.5;
+    }
+
+    /* ===================== QUEUE JEEPS (HORIZONTAL, ARRIVED FULL JEEPS) ===================== */
+    .jeep-horizontal {
+      width:160px;
+      height:80px;
+      border-radius:20px 60px 60px 20px; /* curved left front */
+      border:2px solid #555;
+      background:#fffde7;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      padding-left:10px;
+      cursor:pointer;
+      position:relative;
+      transition:0.2s;
+    }
+
+    .jeep-horizontal:hover { transform:scale(1.05); }
+
+    .jeep-horizontal::before {
+      content:"";
+      position:absolute;
+      left:8px;
+      top:50%;
+      transform:translateY(-50%);
+      width:30px;
+      height:40px;
+      background:#d7e9ff;
+      border:2px solid #333;
+      border-radius:10px;
+    }
+
+    .queue-cars {
+      display:flex;
+      flex-direction:row;
+      gap:12px;
+      margin-top:10px;
+      flex-wrap:wrap;
+    }
+
+    /* ===================== MODAL ===================== */
+    .modal-bg {
+      position:fixed;
+      left:0; top:0;
+      width:100%; height:100%;
+      background:rgba(0,0,0,0.6);
+      display:none;
+      justify-content:center;
+      align-items:center;
+      z-index:10000;
+    }
+
+    .modal {
+      background:white;
+      padding:20px;
+      width:350px;
+      border-radius:10px;
+      animation:pop 0.25s ease;
+    }
+
+    @keyframes pop {
+      from { transform:scale(0.8); opacity:0; }
+      to { transform:scale(1); opacity:1; }
+    }
+
+    /* ===================== 22-SEAT JEEPNEY LAYOUT ===================== */
+    .jeepney-layout {
+      width: 260px;
+      margin: auto;
+      background: #f0f0f0;
+      padding: 15px;
+      border-radius: 12px;
+      border: 2px solid #999;
+    }
+
+    .jeepney-front {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .driver-box {
+      flex: 1;
+      height: 40px;
+      background: #ddd;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      padding-left: 6px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .front-seats {
+      display: flex;
+      gap: 5px;
+    }
+
+    .seat-square {
+      width: 35px;
+      height: 35px;
+      border-radius: 4px;
+    }
+
+    .filled { background:#4caf50; }
+    .empty  { background:#ccc; }
+
+    .jeepney-row {
+      display:flex;
+      justify-content:space-between;
+      margin-bottom:6px;
+    }
+
+    .side-seat {
+      width:40px;
+      height:35px;
+      border-radius:4px;
+    }
+
+    .close-btn {
+      margin-top:15px;
+      width:100%;
+      padding:10px;
+      background:#f44336;
+      color:white;
+      border:none;
+      border-radius:5px;
+      cursor:pointer;
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- LEFT INFO PANEL -->
+  <div class="panel">
+    <h3>Jeep Information</h3>
+    <p><strong>Jeep ID:</strong> <span id="infoId">–</span></p>
+    <p><strong>From:</strong> <span id="infoLocation">–</span></p>
+    <p><strong>Capacity:</strong> <span id="infoCap">–</span></p>
+    <p><strong>Passengers:</strong> <span id="infoPass">–</span></p>
+    <p><strong>Seats Left:</strong> <span id="infoLeft">–</span></p>
+  </div>
+
+  <!-- 4 ORIGIN TERMINALS -->
+  <div class="panel">
+    <h3>Origin Terminals (Loading Jeeps)</h3>
+
+    <div class="jeep-grid">
+      <!-- TOP: back view -->
+      <div class="jeep-vertical jeep-flip" data-index="0">
+        <div class="terminal-label">Terminal 1</div>
+        <div class="jeep-id"></div>
+        <div class="jeep-count"></div>
+      </div>
+
+      <div class="jeep-vertical jeep-flip" data-index="1">
+        <div class="terminal-label">Terminal 2</div>
+        <div class="jeep-id"></div>
+        <div class="jeep-count"></div>
+      </div>
+
+      <!-- BOTTOM: front view -->
+      <div class="jeep-vertical" data-index="2">
+        <div class="terminal-label">Terminal 3</div>
+        <div class="jeep-id"></div>
+        <div class="jeep-count"></div>
+      </div>
+
+      <div class="jeep-vertical" data-index="3">
+        <div class="terminal-label">Terminal 4</div>
+        <div class="jeep-id"></div>
+        <div class="jeep-count"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN TERMINAL (sakayan) -->
+  <div class="panel">
+    <h3>Main Destination Terminal (Sakayan)</h3>
+    <div class="main-jeep-wrapper">
+      <div class="main-jeep-box">
+        <div class="main-jeep-label" id="mainJeepLabel">Waiting for jeep...</div>
+        <div class="main-jeep main-jeep-empty" id="mainJeepBox">
+          <div class="jeep-id" id="mainJeepId">EMPTY</div>
+          <div class="jeep-count" id="mainJeepCount">0/22</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- filler cell -->
+  <div></div>
+
+  <!-- QUEUE OF FULL JEEPS THAT ARRIVE TO MAIN TERMINAL -->
+  <div class="panel">
+    <h3>Main Terminal Queue (Jeeps at Main)</h3>
+    <div class="queue-cars" id="queueCars"></div>
+  </div>
+
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="seatModalBg">
+  <div class="modal">
+    <h3>Seats – Jeep <span id="seatJeepId"></span></h3>
+    <div id="seatLayout"></div>
+    <button class="close-btn" onclick="closeSeatModal()">Close</button>
+  </div>
+</div>
+
+<script>
+  const CAPACITY = 22;
+  const TICK_MS = 2000;
+  const MAIN_TERMINAL_ID = {{ main_terminal_id }};
+  // 100% full bago umalis pabalik ng origin
+  const MAIN_MIN_FILL = 1.0;
+
+  // 4 origin displays (blue boxes)
+  let originJeeps = [
+    { id: null, terminalName: "Terminal 1", originTerminalId: null, passengers: 0, capacity: CAPACITY },
+    { id: null, terminalName: "Terminal 2", originTerminalId: null, passengers: 0, capacity: CAPACITY },
+    { id: null, terminalName: "Terminal 3", originTerminalId: null, passengers: 0, capacity: CAPACITY },
+    { id: null, terminalName: "Terminal 4", originTerminalId: null, passengers: 0, capacity: CAPACITY },
+  ];
+
+  // NOW: departedQueue represents REAL queue at MAIN terminal
+  let departedQueue = [];
+  let mainJeep = null;      // kasalukuyang nasa main
+
+  // UI refs
+  const jeepElems = document.querySelectorAll(".jeep-vertical");
+  const queueCarsEl = document.getElementById("queueCars");
+  const mainJeepBox = document.getElementById("mainJeepBox");
+  const mainJeepLabel = document.getElementById("mainJeepLabel");
+  const mainJeepIdEl = document.getElementById("mainJeepId");
+  const mainJeepCountEl = document.getElementById("mainJeepCount");
+
+  const infoId = document.getElementById("infoId");
+  const infoLocation = document.getElementById("infoLocation");
+  const infoCap = document.getElementById("infoCap");
+  const infoPass = document.getElementById("infoPass");
+  const infoLeft = document.getElementById("infoLeft");
+
+  const seatModalBg = document.getElementById("seatModalBg");
+  const seatLayout = document.getElementById("seatLayout");
+  const seatJeepId = document.getElementById("seatJeepId");
+
+  /* ------------------- MODAL ------------------- */
+
+  function seatSq(full) {
+    return `<div class="seat-square ${full ? "filled" : "empty"}"></div>`;
+  }
+
+  function showSeatModal(j) {
+    seatJeepId.textContent = j.id;
+
+    const taken = j.passengers;
+    const capacity = j.capacity;
+    let index = 0;
+
+    let html = `
+      <div class="jeepney-layout">
+        <div class="jeepney-front">
+          <div class="driver-box">Driver</div>
+          <div class="front-seats">
+            ${seatSq(index < taken)}
+            ${seatSq(index + 1 < taken)}
+          </div>
+        </div>
+    `;
+
+    index += 2;
+    const rows = Math.ceil((capacity - 2) / 2);
+
+    for (let i = 0; i < rows; i++) {
+      html += `
+        <div class="jeepney-row">
+          ${seatSq(index < taken)}
+          ${seatSq(index + 1 < taken)}
+        </div>
+      `;
+      index += 2;
+    }
+
+    html += `</div>`;
+    seatLayout.innerHTML = html;
+    seatModalBg.style.display = "flex";
+  }
+
+  function closeSeatModal() {
+    seatModalBg.style.display = "none";
+  }
+
+  function updateInfo(j) {
+    infoId.textContent = j.id;
+    infoLocation.textContent = j.terminalName || j.originName || "Main Terminal";
+    infoCap.textContent = j.capacity;
+    infoPass.textContent = j.passengers;
+    infoLeft.textContent = j.capacity - j.passengers;
+  }
+
+  /* ------------------- RENDERING ------------------- */
+
+  function renderOriginJeeps() {
+    originJeeps.forEach((j, i) => {
+      const el = jeepElems[i];
+      if (!el) return;
+      el.querySelector(".jeep-id").textContent = j.id ? `Jeep ${j.id}` : "No jeep";
+      el.querySelector(".jeep-count").textContent = `${j.passengers}/${j.capacity}`;
+    });
+  }
+
+  function renderMainJeep() {
+    if (!mainJeep) {
+      mainJeepBox.classList.add("main-jeep-empty");
+      mainJeepIdEl.textContent = "EMPTY";
+      mainJeepCountEl.textContent = "0/22";
+      mainJeepLabel.textContent = "Waiting for jeep...";
+      return;
+    }
+
+    mainJeepBox.classList.remove("main-jeep-empty");
+    mainJeepIdEl.textContent = `Jeep ${mainJeep.id}`;
+    mainJeepCountEl.textContent = `${mainJeep.passengers}/${mainJeep.capacity}`;
+
+    if (mainJeep.phase === "unloading") {
+      mainJeepLabel.textContent = `Unloading (from ${mainJeep.originName})`;
+    } else {
+      mainJeepLabel.textContent = `Loading (to ${mainJeep.originName})`;
+    }
+  }
+
+  function renderQueue() {
+    queueCarsEl.innerHTML = "";
+    departedQueue.forEach(j => {
+      const d = document.createElement("div");
+      d.className = "jeep-horizontal";
+      d.innerHTML = `
+        <div class="jeep-id">Jeep ${j.id}</div>
+        <div class="jeep-count">${j.passengers}/${j.capacity}</div>
+        <div style="font-size:11px;">At Main Terminal</div>
+      `;
+      d.onclick = () => {
+        updateInfo(j);
+        showSeatModal(j);
+      };
+      queueCarsEl.appendChild(d);
+    });
+  }
+
+  /* ------------------- ARRIVAL LOGIC ------------------- */
+
+  function jeepArrivesAtMain(incoming) {
+    mainJeep = {
+      id: incoming.id,
+      originName: incoming.originName,
+      originTerminalId: incoming.originTerminalId,
+      passengers: incoming.passengers,
+      capacity: incoming.capacity,
+      terminalName: "Main Terminal",
+      phase: "unloading"
+    };
+  }
+
+  /* ------------------- MAIN CYCLE ------------------- */
+
+  function simulateMain() {
+    // If no jeep at main → take next from queue
+    if (!mainJeep && departedQueue.length > 0) {
+      jeepArrivesAtMain(departedQueue.shift());
+    }
+
+    if (!mainJeep) return;
+
+    if (mainJeep.phase === "unloading") {
+      mainJeep.passengers -= 2;
+      if (mainJeep.passengers <= 0) {
+        mainJeep.passengers = 0;
+        mainJeep.phase = "loading";
+      }
+
+    } else if (mainJeep.phase === "loading") {
+      mainJeep.passengers += 2;
+
+      const needed = mainJeep.capacity * MAIN_MIN_FILL;
+
+      if (mainJeep.passengers >= needed) {
+        if (mainJeep.passengers > mainJeep.capacity) {
+          mainJeep.passengers = mainJeep.capacity;
+        }
+
+        // MAIN → ORIGIN departure
+        fetch("/api/trips/depart-from-main", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            jeepney_id: mainJeep.id,
+            passengers: mainJeep.passengers
+          })
+        })
+
+        .then(r => {
+          if (!r.ok) {
+            return r.json().then(x => { throw x; });
+          }
+          return r.json();
+        })
+        .then(() => {
+          // after one full cycle, reload data
+          loadOriginJeepsFromDB();
+          loadMainQueueFromDB();
+        })
+        .catch(err => console.error("Error depart-from-main:", err));
+
+        mainJeep = null;
+      }
+    }
+  }
+
+  /* ------------------- TICK ------------------- */
+
+  function tick() {
+    simulateMain();
+    renderOriginJeeps();
+    renderQueue();
+    renderMainJeep();
+  }
+
+  setInterval(tick, TICK_MS);
+
+  /* ------------------- LOAD INITIAL DATA ------------------- */
+
+  jeepElems.forEach(el => {
+    el.addEventListener("click", () => {
+      const idx = parseInt(el.dataset.index, 10);
+      const j = originJeeps[idx];
+      if (!j.id) return;
+      updateInfo(j);
+      showSeatModal(j);
+    });
+  });
+
+  mainJeepBox.addEventListener("click", () => {
+    if (!mainJeep) return;
+    updateInfo(mainJeep);
+    showSeatModal(mainJeep);
+  });
+
+  // Load the 4 "origin jeeps" (summary of latest departed jeeps heading to main)
+  function loadOriginJeepsFromDB() {
+    fetch("/api/main/origin-jeeps")
+      .then(r => r.json())
+      .then(data => {
+        // reset origins only
+        originJeeps.forEach(j => {
+          j.id = null;
+          j.passengers = 0;
+          j.capacity = CAPACITY;
+          j.originTerminalId = null;
+        });
+
+        data.forEach((row, idx) => {
+          const capacity = row.capacity ?? CAPACITY;
+          const passengers = row.passengers ?? capacity;
+
+          const jeepData = {
+            id: row.jeepney_id,
+            originName: row.terminal_name,
+            originTerminalId: row.terminal_id,
+            passengers,
+            capacity,
+            terminalName: row.terminal_name
+          };
+
+          if (idx < originJeeps.length) {
+            originJeeps[idx].id = jeepData.id;
+            originJeeps[idx].terminalName = jeepData.originName;
+            originJeeps[idx].originTerminalId = jeepData.originTerminalId;
+            originJeeps[idx].passengers = jeepData.passengers;
+            originJeeps[idx].capacity = jeepData.capacity;
+          }
+        });
+
+        renderOriginJeeps();
+      })
+      .catch(err => console.error("Error loading origin jeeps:", err));
+  }
+
+  // NEW: load REAL queue at main from DB
+  function loadMainQueueFromDB() {
+    fetch(`/api/terminal/${MAIN_TERMINAL_ID}/queue`)
+      .then(r => r.json())
+      .then(data => {
+        departedQueue.length = 0;
+
+        data.forEach(row => {
+          const capacity = row.capacity ?? CAPACITY;
+          const passengers = row.passengers ?? 0;
+
+          departedQueue.push({
+            id: row.jeepney_id,
+            originName: "Main Terminal Queue",
+            originTerminalId: MAIN_TERMINAL_ID,
+            passengers,
+            capacity,
+            terminalName: "Main Terminal"
+          });
+        });
+
+        // If no jeep currently at main, pull first from queue
+        if (!mainJeep && departedQueue.length > 0) {
+          jeepArrivesAtMain(departedQueue.shift());
+        }
+
+        renderQueue();
+        renderMainJeep();
+      })
+      .catch(err => console.error("Error loading main queue:", err));
+  }
+
+  // initial load
+  loadOriginJeepsFromDB();
+  loadMainQueueFromDB();
+</script>
+
+</body>
+</html>

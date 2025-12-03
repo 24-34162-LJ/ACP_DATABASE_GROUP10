@@ -66,6 +66,8 @@ class Terminal(db.Model):
         nullable=False,
         default='active'
     )
+    
+    is_main = db.Column(db.Boolean, default=False, nullable=False)
 
     # to relationship
 
@@ -312,6 +314,7 @@ class TerminalJeepneys(db.Model):
         nullable=False,
         default='Waiting'
     )
+    current_passengers = db.Column(db.Integer, nullable=False, default=0)
 
     # to relationship
 

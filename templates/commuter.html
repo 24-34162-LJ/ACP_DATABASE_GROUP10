@@ -4,5 +4,7 @@
 <h1> commuter </h1>
 {% if session.get('user_id') %}
 <button type="button" class="btn btn-outline-primary"><a class="nav-link" href="{{ url_for('logout') }}">Logout</a></button>
+
+<button type="button" class="btn btn-outline-primary"><a href="{{ url_for('seat', terminal_id=1) }}">Logout</a></button>
 {% endif %}
 {% endblock %}

@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Jeep Terminal Network Map</title>
+
+  <style>
+    :root {
+      --road-color: #555555;
+      --road-line: #ffffff;
+      --grass: #c8e6c9;
+      --border-dark: #263238;
+      --card-bg: #ffffff;
+      --main-bg: #ffe082;
+      --shadow-soft: 0 6px 14px rgba(0,0,0,0.25);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: radial-gradient(circle at top, #e0f7fa, #b2dfdb);
+      margin: 0;
+      padding: 24px;
+      color: #263238;
+    }
+
+    h2 { margin: 0 0 4px; }
+
+    .subtitle {
+      font-size: 13px;
+      color: #455a64;
+      margin-bottom: 12px;
+    }
+
+    .map-wrapper {
+      display: flex;
+      justify-content: center;
+      margin-top: 10px;
+    }
+
+    .map {
+      position: relative;
+      width: 980px;
+      height: 560px;
+      background: var(--grass);
+      border-radius: 22px;
+      box-shadow: var(--shadow-soft);
+      overflow: hidden;
+      border: 2px solid rgba(0,0,0,0.15);
+    }
+
+    /* TERMINAL CARDS */
+    .terminal,
+    .main-terminal {
+      position: absolute;
+      background: var(--card-bg);
+      border-radius: 14px;
+      border: 2px solid var(--border-dark);
+      padding: 8px 20px;
+      font-size: 15px;
+      text-align: center;
+      box-shadow: 0 3px 9px rgba(0,0,0,.25);
+      z-index: 4;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .terminal:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 7px 16px rgba(0,0,0,.35);
+    }
+
+    .terminal-label { font-weight: bold; letter-spacing: 0.5px; }
+    .terminal-meta { font-size: 11px; color: #607d8b; margin-top: 2px; }
+
+    /* MAIN TERMINAL */
+    .main-terminal {
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--main-bg);
+      padding: 12px 28px;
+      border-radius: 18px;
+      font-weight: bold;
+      font-size: 16px;
+      letter-spacing: 0.6px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      cursor: pointer;
+      z-index: 999;
+      user-select: none;
+    }
+
+    .main-terminal:hover {
+      transform: translate(-50%, -50%) scale(1.05);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+    }
+
+    .main-terminal.expanded {
+      transform: translate(-50%, -50%) scale(1.15);
+      transition: 0.2s ease-in-out;
+    }
+
+    .mini-jeep {
+      width: 14px;
+      height: 8px;
+      border-radius: 8px 12px 12px 8px;
+      background: #ffca28;
+      border: 2px solid #333;
+      box-shadow: 0 0 3px rgba(0,0,0,.4);
+    }
+
+    /* terminal positions (corners) */
+    .terminal-1 { top: 40px; right: 70px; }
+    .terminal-2 { bottom: 40px; right: 70px; }
+    .terminal-3 { top: 40px; left: 70px; }
+    .terminal-4 { bottom: 40px; left: 70px; }
+
+    /* ROADS – positioned to connect corners to center */
+    .road {
+      position: absolute;
+      height: 32px;
+      background: var(--road-color);
+      border-radius: 20px;
+      box-shadow: 0 0 8px rgba(0,0,0,.45) inset;
+      z-index: 1;
+    }
+
+    .road-to-1 { width: 380px; top: 90px;  right: 180px; transform: rotate(-22deg); }
+    .road-to-2 { width: 380px; bottom: 90px; right: 180px; transform: rotate(22deg); }
+    .road-to-3 { width: 380px; top: 90px;  left: 180px; transform: rotate(22deg); }
+    .road-to-4 { width: 380px; bottom: 90px; left: 180px; transform: rotate(-22deg); }
+
+    .road::after {
+      content: "";
+      position: absolute;
+      left: 4%;
+      right: 4%;
+      top: 50%;
+      transform: translateY(-50%);
+      height: 4px;
+      background-image: linear-gradient(
+        to right,
+        var(--road-line) 0,
+        var(--road-line) 40px,
+        transparent 40px,
+        transparent 80px
+      );
+      background-size: 80px 4px;
+      opacity: 0.9;
+    }
+
+    /* joint in the middle (decor only) */
+    .joint {
+      position: absolute;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--road-color);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 2;
+      box-shadow: 0 0 6px rgba(0,0,0,.4) inset;
+    }
+
+    /* moving jeep icon on a road */
+    .jeep-dot {
+      position: absolute;
+      width: 20px;
+      height: 12px;
+      border-radius: 10px 14px 14px 10px;
+      background: #ffca28;
+      border: 2px solid #212121;
+      top: 10px;
+      left: 10%;
+      box-shadow: 0 0 4px rgba(0,0,0,.5);
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .jeep-dot::after {
+      content: "";
+      position: absolute;
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: #212121;
+      bottom: -3px;
+      left: 3px;
+      box-shadow: 10px 0 0 #212121;
+    }
+
+    /* animations */
+    @keyframes jeep-in   { 0% { left: 85%; } 100% { left: 45%; } }
+    @keyframes jeep-out  { 0% { left: 45%; } 100% { left: 5%; } }
+
+    .road.trip-in  .jeep-dot { opacity: 1; animation: jeep-in  3s linear infinite alternate; }
+    .road.trip-out .jeep-dot { opacity: 1; animation: jeep-out 3s linear infinite alternate; }
+
+    /* traffic light circle at end of road */
+    .traffic-light {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      right: -18px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: red;
+      box-shadow: 0 0 4px rgba(0,0,0,0.5);
+    }
+    .traffic-light.green { background: #00c853; }
+
+    /* MODAL FOR SEATS */
+    .modal-bg {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+    .modal {
+      background: #fff;
+      padding: 16px 20px;
+      border-radius: 10px;
+      min-width: 320px;
+      max-width: 420px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+    .seat-grid {
+      display: grid;
+      grid-template-columns: repeat(11, 1fr);
+      gap: 4px;
+      margin-top: 10px;
+    }
+    .seat-square {
+      width: 14px;
+      height: 14px;
+      border-radius: 2px;
+      border: 1px solid #999;
+    }
+    .seat-square.filled { background: #ef5350; }
+    .seat-square.empty  { background: #c8e6c9; }
+    .close-btn {
+      margin-top: 12px;
+      padding: 4px 10px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+
+<h2>Jeep Terminal Network Map</h2>
+<p class="subtitle">
+  Visual network of the main terminal and connected terminals. Click a terminal to open its page.
+</p>
+
+<div class="map-wrapper">
+  <div class="map">
+
+    <!-- ROADS (each road knows which terminal it connects to) -->
+    {% for t in terminals[:4] %}
+      <div class="road road-to-{{ loop.index }}"
+           data-terminal-id="{{ t.terminal_id }}">
+        <div class="jeep-dot"></div>
+        <div class="traffic-light"></div>
+      </div>
+    {% endfor %}
+
+    <!-- joint (center) -->
+    <div class="joint"></div>
+
+    <!-- DYNAMIC TERMINALS FROM DATABASE (corners) -->
+    {% set slot_classes = ['terminal-1', 'terminal-2', 'terminal-3', 'terminal-4'] %}
+    {% for t in terminals[:4] %}
+      <div class="terminal {{ slot_classes[loop.index0] }}"
+           onclick="goToTerminal({{ t.terminal_id }})">
+        <div class="terminal-label">{{ t.terminal_name }}</div>
+        <div class="terminal-meta">
+          ID: {{ t.terminal_id }}<br>
+          {{ t.location }}
+        </div>
+      </div>
+    {% endfor %}
+
+    <!-- MAIN TERMINAL (center) -->
+    <div class="main-terminal" id="mainTerminal">
+      MAIN TERMINAL
+      <div class="mini-jeep"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- SEAT MODAL -->
+<div class="modal-bg" id="seatModalBg">
+  <div class="modal">
+    <h3>Jeep Seats — ID <span id="seatJeepId"></span></h3>
+    <div id="seatLayout" class="seat-grid"></div>
+    <button class="close-btn" onclick="closeSeatModal()">Close</button>
+  </div>
+</div>
+
+<script>
+  // Tell JS what MAIN terminal is (comes from Flask)
+  window.MAIN_TERMINAL_ID = {{ main_terminal_id }};
+</script>
+<script src="{{ url_for('static', filename='map/map.js') }}"></script>
+</body>
+</html>

@@ -1,9 +1,28 @@
+<!-- templates/operator.html -->
 {% extends "base.html" %}
-{% block title %} Operator {% endblock %}
+{% block title %}Operator Dashboard{% endblock %}
+
 {% block content %}
-<h1> operator </h1>
-<button type="button" class="btn btn-outline-primary"><a class="nav-link" href="{{ url_for('Add') }}">Logout</a></button>
-{% if session.get('user_id') %}
-<button type="button" class="btn btn-outline-primary"><a class="nav-link" href="{{ url_for('logout') }}">Logout</a></button>
-{% endif %}
+<h1>Operator Dashboard</h1>
+<p>Select a terminal to manage jeepneys:</p>
+
+<ul>
+  <li><a href="{{ url_for('Add') }}">add terminal</a></li>
+
+  {% for t in terminals %}
+    <li>
+      {% if t.terminal_id == main_terminal_id %}
+        <!-- 🔹 MAIN TERMINAL: go to mainterminal.html instead -->
+        {{ t.terminal_name }} (ID: {{ t.terminal_id }}) –
+        <a href="{{ url_for('mainterminal') }}">Open Main Terminal Screen</a>
+      {% else %}
+        <!-- 🔹 OTHER TERMINALS: normal operator seat page -->
+        {{ t.terminal_name }} (ID: {{ t.terminal_id }}) –
+        <a href="{{ url_for('operator_seat', terminal_id=t.terminal_id) }}">
+          Manage Jeeps
+        </a>
+      {% endif %}
+    </li>
+  {% endfor %}
+</ul>
 {% endblock %}

@@ -1,0 +1,157 @@
+:root {
+  --grass: #cfead3;
+  --road: #555;
+  --line: #fff;
+  --terminal-bg: #fff;
+  --main-bg: #ffe082;
+  --shadow: 0 6px 14px rgba(0,0,0,0.25);
+}
+
+body {
+  margin: 0;
+  padding: 24px;
+  background: linear-gradient(#c8edf2, #bde7e0);
+  font-family: Arial;
+}
+
+/* WRAPPER */
+.map-wrapper {
+  display: flex;
+  justify-content: center;
+}
+
+/* MAP */
+.map {
+  width: 980px;
+  height: 600px;
+  background: var(--grass);
+  border-radius: 22px;
+  box-shadow: var(--shadow);
+  position: relative;
+}
+
+/* TERMINALS */
+.terminal {
+  position: absolute;
+  padding: 10px 18px;
+  background: var(--terminal-bg);
+  border-radius: 14px;
+  border: 2px solid #333;
+  cursor: pointer;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.25);
+  width: 150px;
+  text-align: center;
+}
+.terminal:hover {
+  transform: translateY(-4px);
+}
+
+.terminal-1 { top: 40px; right: 40px; }
+.terminal-2 { bottom: 40px; right: 40px; }
+.terminal-3 { top: 40px; left: 40px; }
+.terminal-4 { bottom: 40px; left: 40px; }
+
+/* MAIN TERMINAL */
+/* MAIN TERMINAL FIXED CENTER POSITION + CLICK READY */
+.main-terminal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+
+  background: var(--main-bg);
+  padding: 12px 28px;
+  border: 2px solid var(--border-dark);
+  border-radius: 18px;
+
+  font-weight: bold;
+  font-size: 16px;
+  letter-spacing: 0.6px;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+
+  cursor: pointer;
+  z-index: 999; /* ensures no overlapping blocks clicking */
+  user-select: none;
+}
+
+.main-terminal:hover {
+  transform: translate(-50%, -50%) scale(1.05);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+/* Expanded animation when clicked */
+.main-terminal.expanded {
+  transform: translate(-50%, -50%) scale(1.15);
+  transition: 0.2s ease-in-out;
+}
+
+/* MINI JEEP ICON */
+.mini-jeep {
+  width: 18px;
+  height: 10px;
+  background: gold;
+  border: 2px solid #222;
+  border-radius: 10px 16px 16px 10px;
+}
+
+/* ROADS */
+.road {
+  position: absolute;
+  width: 380px;
+  height: 32px;
+  background: var(--road);
+  border-radius: 22px;
+  box-shadow: inset 0 0 8px rgba(0,0,0,0.4);
+}
+
+/* ROAD POSITIONS */
+.road-to-1 { top: 80px; right: 190px; transform: rotate(-22deg); }
+.road-to-2 { bottom: 80px; right: 190px; transform: rotate(22deg); }
+.road-to-3 { top: 80px; left: 190px; transform: rotate(22deg); }
+.road-to-4 { bottom: 80px; left: 190px; transform: rotate(-22deg); }
+
+/* DASHED LINE */
+.road::after {
+  content: "";
+  position: absolute;
+  left: 4%; right: 4%;
+  top: 50%; transform: translateY(-50%);
+  height: 4px;
+  background-image: linear-gradient(
+    to right,
+    white 0 40px,
+    transparent 40px 80px
+  );
+  background-size: 80px 4px;
+}
+
+/* MOVING JEEP */
+.jeep-dot {
+  width: 20px;
+  height: 12px;
+  background: gold;
+  border-radius: 10px 14px 14px 10px;
+  border: 2px solid #222;
+  position: absolute;
+  top: 10px;
+  left: 0;
+  opacity: 0;
+}
+
+/* Traffic Lights */
+.traffic-light {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  position: absolute;
+  right: -20px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: red;
+}
+.traffic-light.green { background: #00cc22; }

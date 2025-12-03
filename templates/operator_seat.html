@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Operator – Manage Jeeps at {{ terminal_name }}</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f3f3f3; padding:20px; }
+
+    .layout {
+      display:grid;
+      grid-template-columns:280px 1fr;
+      grid-template-rows:auto auto auto;
+      gap:20px;
+    }
+
+    .panel {
+      background:#fff;
+      border-radius:8px;
+      box-shadow:0 0 5px rgba(0,0,0,.1);
+      padding:12px 15px 18px;
+    }
+
+    .jeep {
+      width:90px;
+      height:180px;
+      border-radius:60px 60px 10px 10px;
+      border:2px solid #555;
+      background:#fffde7;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:flex-end;
+      padding-bottom:8px;
+      cursor:pointer;
+      position:relative;
+      transition:0.2s;
+    }
+    .jeep:hover { transform:scale(1.05); }
+
+    .jeep::before {
+      content:"";
+      position:absolute;
+      top:8px;
+      left:50%;
+      transform:translateX(-50%);
+      width:60px;
+      height:35px;
+      background:#d7e9ff;
+      border:2px solid #333;
+      border-radius:20px;
+    }
+
+    .jeep-id {
+      font-weight:bold;
+      margin-bottom:2px;
+    }
+
+    .queue-cars {
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:10px;
+      margin-top:10px;
+    }
+
+    .center-terminal {
+      display:flex;
+      justify-content:center;
+      margin-top:10px;
+    }
+
+    .modal-bg {
+      position:fixed;
+      left:0; top:0;
+      width:100%; height:100%;
+      background:rgba(0,0,0,0.6);
+      display:none;
+      justify-content:center;
+      align-items:center;
+      z-index:10000;
+    }
+
+    .modal {
+      background:white;
+      padding:20px;
+      width:350px;
+      border-radius:10px;
+      animation:pop 0.25s ease;
+    }
+
+    @keyframes pop {
+      from { transform:scale(0.8); opacity:0; }
+      to { transform:scale(1); opacity:1; }
+    }
+
+    .jeepney-layout {
+      width: 260px;
+      margin: auto;
+      background: #f0f0f0;
+      padding: 15px;
+      border-radius: 12px;
+      border: 2px solid #999;
+    }
+
+    .jeepney-front { display:flex; justify-content:space-between; margin-bottom:12px; }
+
+    .driver-box {
+      flex: 1;
+      height: 40px;
+      background: #ddd;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      padding-left: 6px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .front-seats { display:flex; gap:5px; }
+    .seat-square { width:35px; height:35px; border-radius:4px; }
+    .filled { background:#4caf50; }
+    .empty  { background:#ccc; }
+
+    .jeepney-row { display:flex; justify-content:space-between; margin-bottom:6px; }
+
+    .side-seat { width:40px; height:35px; border-radius:4px; }
+
+    .close-btn {
+      margin-top:15px;
+      width:100%;
+      padding:10px;
+      background:#f44336;
+      color:white;
+      border:none;
+      border-radius:5px;
+      cursor:pointer;
+    }
+
+    .form-group { margin-bottom:10px; }
+    .form-group label { display:block; font-size:13px; margin-bottom:3px; }
+    .form-group input {
+      width:100%;
+      padding:6px 8px;
+      border-radius:4px;
+      border:1px solid #ccc;
+      font-size:14px;
+    }
+    .btn {
+      display:inline-block;
+      padding:8px 12px;
+      border:none;
+      border-radius:4px;
+      cursor:pointer;
+      font-size:14px;
+    }
+    .btn-primary { background:#1976d2; color:white; }
+    .small-note { font-size:12px; color:#555; margin-top:8px; }
+  </style>
+</head>
+<body>
+
+<h2>Operator {{ terminal_name }} (Terminal {{ terminal_id }})</h2>
+
+<div class="layout">
+
+  <!-- LEFT PANEL: info + add jeep form -->
+  <div class="panel">
+    <h3>Jeep Information</h3>
+    <p><strong>Terminal:</strong> {{ terminal_name }} (ID: {{ terminal_id }})</p>
+    <p><strong>Jeep ID:</strong> <span id="infoId">–</span></p>
+    <p><strong>Capacity:</strong> <span id="infoCap">–</span></p>
+    <p><strong>Passengers (from DB):</strong> <span id="infoPass">–</span></p>
+    <p><strong>Seats Left:</strong> <span id="infoLeft">–</span></p>
+
+    <hr>
+    <h3>Add New Jeepney</h3>
+    <form id="addJeepForm">
+      <div class="form-group">
+        <label for="plateInput">Plate Number</label>
+        <input type="text" id="plateInput" placeholder="e.g. ABC-123" required>
+      </div>
+      <div class="form-group">
+        <label for="capacityInput">Capacity</label>
+        <input type="number" id="capacityInput" value="22" min="1" required>
+      </div>
+      <button type="submit" class="btn btn-primary">Add Jeepney to Terminal</button>
+    </form>
+    <div class="small-note">
+      This will create a new Jeepney record and attach it to this terminal’s queue as <b>Waiting</b>.
+    </div>
+  </div>
+
+  <!-- TERMINAL (center jeep is optional here, but we keep static) -->
+  <div class="panel">
+    <h3>Terminal – {{ terminal_name }}</h3>
+    <div class="center-terminal">
+      <div class="jeep" id="terminalBox">
+        <div class="jeep-id">INFO</div>
+        <div>Click a jeep from queue</div>
+      </div>
+    </div>
+  </div>
+
+  <div></div>
+
+  <!-- QUEUE -->
+  <div class="panel">
+    <h3>Queue at {{ terminal_name }}</h3>
+    <div class="queue-cars" id="queueCars"></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="seatModalBg">
+  <div class="modal">
+    <h3>Jeep Seats – ID <span id="seatJeepId"></span></h3>
+    <div id="seatLayout"></div>
+    <button class="close-btn" onclick="closeSeatModal()">Close</button>
+  </div>
+</div>
+
+<script>
+  const TERMINAL_ID = {{ terminal_id }};
+  const CAPACITY_FALLBACK = 22;
+
+  let queue = [];
+
+  const queueCarsEl = document.getElementById("queueCars");
+  const terminalBoxEl = document.getElementById("terminalBox");
+
+  const infoId = document.getElementById("infoId");
+  const infoCap = document.getElementById("infoCap");
+  const infoPass = document.getElementById("infoPass");
+  const infoLeft = document.getElementById("infoLeft");
+
+  const seatModalBg = document.getElementById("seatModalBg");
+  const seatLayout = document.getElementById("seatLayout");
+  const seatJeepId = document.getElementById("seatJeepId");
+
+  function renderSquare(filled) {
+    return `<div class="seat-square ${filled ? "filled" : "empty"}"></div>`;
+  }
+
+  function showSeatModal(jeep) {
+    seatJeepId.textContent = jeep.id;
+
+    const seatsTaken = jeep.passengers;
+    const totalSeats = jeep.capacity;
+
+    let seatIndex = 0;
+    let html = `
+      <div class="jeepney-layout">
+        <div class="jeepney-front">
+          <div class="driver-box">Driver</div>
+          <div class="front-seats">
+            ${renderSquare(seatIndex < seatsTaken)}
+            ${renderSquare(seatIndex + 1 < seatsTaken)}
+          </div>
+        </div>
+    `;
+
+    seatIndex += 2;
+    const remaining = totalSeats - 2;
+    const rows = Math.ceil(remaining / 2);
+
+    for (let i = 0; i < rows; i++) {
+      html += `
+        <div class="jeepney-row">
+          <div class="side-seat ${seatIndex < seatsTaken ? "filled" : "empty"}"></div>
+          <div class="side-seat ${
+            seatIndex + 1 < seatsTaken ? "filled" : "empty"
+          }"></div>
+        </div>
+      `;
+      seatIndex += 2;
+    }
+
+    html += `</div>`;
+    seatLayout.innerHTML = html;
+    seatModalBg.style.display = "flex";
+  }
+
+  function closeSeatModal() {
+    seatModalBg.style.display = "none";
+  }
+
+  function updateInfo(jeep) {
+    infoId.textContent = jeep.id;
+    infoCap.textContent = jeep.capacity;
+    infoPass.textContent = jeep.passengers;
+    infoLeft.textContent = jeep.capacity - jeep.passengers;
+  }
+
+  function renderQueue() {
+    queueCarsEl.innerHTML = "";
+
+    queue.forEach(j => {
+      const d = document.createElement("div");
+      d.className = "jeep";
+      d.innerHTML = `
+        <div class="jeep-id">Jeep ${j.id}</div>
+        <div>${j.passengers}/${j.capacity}</div>
+      `;
+      d.onclick = () => {
+        updateInfo(j);
+        // Optional: show seat modal on click
+        showSeatModal(j);
+      };
+      queueCarsEl.appendChild(d);
+    });
+  }
+
+  function loadQueueFromBackend() {
+    fetch(`/api/terminal/${TERMINAL_ID}/queue`)
+      .then(r => r.json())
+      .then(data => {
+        queue = data.map(j => ({
+          id: j.jeepney_id,
+          passengers: j.passengers ?? 0,
+          capacity: j.capacity ?? CAPACITY_FALLBACK
+        }));
+        renderQueue();
+      })
+      .catch(err => console.error("Error loading queue", err));
+  }
+
+  // Handle Add Jeep form
+  document.getElementById("addJeepForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+    const plate = document.getElementById("plateInput").value.trim();
+    const cap = parseInt(document.getElementById("capacityInput").value, 10) || 22;
+
+    if (!plate) {
+      alert("Please enter a plate number.");
+      return;
+    }
+
+    fetch(`/api/terminal/${TERMINAL_ID}/jeepneys`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        plate_number: plate,
+        capacity: cap
+      })
+    })
+    .then(r => {
+      if (!r.ok) throw new Error("Failed to add jeep.");
+      return r.json();
+    })
+    .then(data => {
+      alert("Jeepney added to terminal!");
+      document.getElementById("addJeepForm").reset();
+      loadQueueFromBackend();   // refresh queue AFTER add
+    })
+    .catch(err => {
+      console.error(err);
+      alert("Error adding jeepney.");
+    });
+  });
+
+  // Initial load only (no interval, no tick)
+  loadQueueFromBackend();
+</script>
+
+</body>
+</html>
