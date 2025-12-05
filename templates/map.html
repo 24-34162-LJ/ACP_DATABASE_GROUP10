@@ -252,6 +252,21 @@
       padding: 4px 10px;
       cursor: pointer;
     }
+    #close {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 25px;
+      font-size: 16px;
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+      
+
   </style>
 </head>
 
@@ -307,6 +322,11 @@
     <button class="close-btn" onclick="closeSeatModal()">Close</button>
   </div>
 </div>
+
+<button 
+    onclick="window.location.href='/commuter'" id="close">Home
+</button> 
+
 
 <script>
   // Tell JS what MAIN terminal is (comes from Flask)

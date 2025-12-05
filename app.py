@@ -1,10 +1,17 @@
-from flask import Flask, render_template, redirect, url_for, session, request, flash, jsonify, current_app
+from flask import Flask, render_template, redirect, url_for, session, request, flash, jsonify, current_app, abort
 from werkzeug.security import generate_password_hash, check_password_hash
 from forms import RegisterForm, LoginForm, AddTerminal
 from models import (
     db, User, Terminal, Jeepney, Trip, Seat, TerminalJeepneys,
     Route, Auditlog, Userfavorite, Notification
 )
+
+from forms import (
+    UserForm, TerminalForm, RouteForm, JeepneyForm,
+    TripForm, SeatForm, TerminalJeepneysForm,
+    UserfavoriteForm, NotificationForm, AuditlogForm
+)
+
 from datetime import datetime
 from sqlalchemy import func
 
@@ -22,6 +29,32 @@ app.config['WTF_CSRF_ENABLED'] = False
 
 db.init_app(app)
 
+#-------------------------------------------------
+MODEL_MAP = {
+    "users": User,
+    "terminals": Terminal,
+    "routes": Route,
+    "jeepneys": Jeepney,
+    "trips": Trip,
+    "seats": Seat,
+    "terminaljeeps": TerminalJeepneys,
+    "userfavorites": Userfavorite,
+    "notifications": Notification,
+    "auditlogs": Auditlog,
+}
+
+FORM_MAP = {
+    "users": UserForm,
+    "terminals": TerminalForm,
+    "routes": RouteForm,
+    "jeepneys": JeepneyForm,
+    "trips": TripForm,
+    "seats": SeatForm,
+    "terminaljeeps": TerminalJeepneysForm,
+    "userfavorites": UserfavoriteForm,
+    "notifications": NotificationForm,
+    "auditlogs": AuditlogForm,
+}
 
 # ---------------- BASIC PAGES ----------------
 @app.route('/home')
@@ -72,7 +105,7 @@ def login():
 
             # Redirect based on role
             if session['role'] == 'player':
-                return redirect(url_for("mainterminal"))
+                return redirect(url_for("commuter"))
             elif session['role'] == 'operator':
                 return redirect(url_for("operator"))
             elif session['role'] == 'viewer':
@@ -132,7 +165,6 @@ def logout():
 def index():
     return redirect(url_for("home"))
 
-
 # ---------------- ROLE PAGES ----------------
 @app.route("/commuter")
 def commuter():
@@ -148,7 +180,6 @@ def operator():
         terminals=terminals,
         main_terminal_id=main_id
         )
-
 
 
 @app.route("/operator/seat/<int:terminal_id>")
@@ -179,6 +210,103 @@ def Add():
         flash("data added in database")
         return redirect(url_for("operator"))
     return render_template("terminal.html", form=form)
+    
+
+@app.route('/delete/<string:model>/<int:id>', methods=['POST'])
+def delete_record(model, id):
+    model_class = MODEL_MAP.get(model)
+    if model_class is None:
+        abort(404)
+
+    obj = model_class.query.get_or_404(id)
+    db.session.delete(obj)
+    db.session.commit()
+    flash(f'{model.capitalize()} record deleted successfully', "success")
+    return redirect(url_for('view'))
+
+@app.route('/edit/<string:model>/<int:id>', methods=['GET', 'POST'])
+def update_record(model, id):
+    model_class = MODEL_MAP.get(model)
+    form_class = FORM_MAP.get(model)
+
+    if model_class is None or form_class is None:
+        abort(404)
+
+    obj = model_class.query.get_or_404(id)
+
+    # Bind form to existing object
+    form = form_class(obj=obj)
+
+    # ---------- fill choices for SelectFields depending on model ----------
+    if model == "routes":
+        form.start_terminal_id.choices = [
+            (t.terminal_id, t.terminal_name) for t in Terminal.query.all()
+        ]
+        form.end_terminal_id.choices = [
+            (t.terminal_id, t.terminal_name) for t in Terminal.query.all()
+        ]
+
+    if model == "trips":
+        form.jeepney_id.choices = [
+            (j.jeepney_id, j.plate_number) for j in Jeepney.query.all()
+        ]
+        form.route_id.choices = [
+            (r.route_id, r.route_name) for r in Route.query.all()
+        ]
+        form.origin_terminal_id.choices = [
+            (t.terminal_id, t.terminal_name) for t in Terminal.query.all()
+        ]
+        form.destination_terminal_id.choices = [
+            (t.terminal_id, t.terminal_name) for t in Terminal.query.all()
+        ]
+
+    if model == "seats":
+        form.trip_id.choices = [
+            (t.trip_id, f"Trip {t.trip_id}") for t in Trip.query.all()
+        ]
+
+    if model == "terminaljeeps":
+        form.terminal_id.choices = [
+            (t.terminal_id, t.terminal_name) for t in Terminal.query.all()
+        ]
+        form.jeepney_id.choices = [
+            (j.jeepney_id, j.plate_number) for j in Jeepney.query.all()
+        ]
+
+    if model == "userfavorites":
+        form.user_id.choices = [
+            (u.user_id, f"{u.first_name} {u.last_name}") for u in User.query.all()
+        ]
+        form.terminal_id.choices = [
+            (t.terminal_id, t.terminal_name) for t in Terminal.query.all()
+        ]
+        form.route_id.choices = [
+            (r.route_id, r.route_name) for r in Route.query.all()
+        ]
+
+    if model == "notifications":
+        form.user_id.choices = [
+            (u.user_id, f"{u.first_name} {u.last_name}") for u in User.query.all()
+        ]
+        form.trip_id.choices = [
+            (t.trip_id, f"Trip {t.trip_id}") for t in Trip.query.all()
+        ]
+
+    if model == "auditlogs":
+        form.user_id.choices = [
+            (u.user_id, f"{u.first_name} {u.last_name}") for u in User.query.all()
+        ]
+
+    # ---------- handle POST ----------
+    if form.validate_on_submit():
+        # Copy form data into the SQLAlchemy object
+        form.populate_obj(obj)
+        db.session.commit()
+        flash(f"{model.capitalize()} updated successfully!", "success")
+        return redirect(url_for('view'))   # back to your DB viewer
+
+    # GET or failed validation
+    return render_template('edit_form.html', form=form, model=model)
 
 
 @app.route("/admin")

@@ -5,6 +5,11 @@
 {% if session.get('user_id') %}
 <button type="button" class="btn btn-outline-primary"><a class="nav-link" href="{{ url_for('logout') }}">Logout</a></button>
 
-<button type="button" class="btn btn-outline-primary"><a href="{{ url_for('seat', terminal_id=1) }}">Logout</a></button>
+<button type="button" class="btn btn-outline-primary"><a href="{{ url_for('seat', terminal_id=2) }}">view terminal</a></button>
+
+<button type="button" class="btn btn-outline-primary"><a href="{{ url_for('map_view') }}">view map</a></button>
+
+<button type="button" class="btn btn-outline-primary"><a href="{{ url_for('mainterminal') }}">main terminal</a></button>
+
 {% endif %}
 {% endblock %}

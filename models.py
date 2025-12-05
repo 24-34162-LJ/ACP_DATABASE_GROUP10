@@ -30,28 +30,36 @@ class User(db.Model):
         nullable=False,
         default=datetime.utcnow
     )
-    # relations
+
+    # relations (with cascade)
 
     favorite_pk = db.relationship(
         "Userfavorite",
         foreign_keys='Userfavorite.user_id',
-        back_populates='favorite_fk'
+        back_populates='favorite_fk',
+        cascade="all, delete-orphan",
+        passive_deletes=True
     )
 
     notification_pk = db.relationship(
         "Notification",
         foreign_keys='Notification.user_id',
-        back_populates='notification_fk'
+        back_populates='notification_fk',
+        cascade="all, delete-orphan",
+        passive_deletes=True
     )
 
     audit_user_pk = db.relationship(
         "Auditlog",
         foreign_keys='Auditlog.user_id',
-        back_populates='audit_user_fk'
+        back_populates='audit_user_fk',
+        cascade="all, delete-orphan",
+        passive_deletes=True
     )
 
     def __repr__(self):
-        return f"<User {self.full_name}>"
+        return f"<User {self.first_name} {self.last_name}>"
+
 
 class Terminal(db.Model):
 
@@ -61,7 +69,7 @@ class Terminal(db.Model):
     terminal_name = db.Column(db.String(100), nullable=False)
     location = db.Column(db.String(150), nullable=False)
 
-    status = db.Column (
+    status = db.Column(
         db.Enum('active', 'inactive', name='terminal_status'),
         nullable=False,
         default='active'
@@ -73,41 +81,47 @@ class Terminal(db.Model):
 
     origin_route = db.relationship(
         "Route",
-        foreign_keys = 'Route.start_terminal_id',
-        back_populates = "start_terminal"
+        foreign_keys='Route.start_terminal_id',
+        back_populates="start_terminal"
     )
+
     destination_route = db.relationship(
         "Route",
-        foreign_keys = 'Route.end_terminal_id',
-        back_populates = "end_terminal"
+        foreign_keys='Route.end_terminal_id',
+        back_populates="end_terminal"
     )
 
     origin_trip_pk = db.relationship(
         "Trip",
-        foreign_keys = 'Trip.origin_terminal_id',
-        back_populates = "origin_fk"
+        foreign_keys='Trip.origin_terminal_id',
+        back_populates="origin_fk"
     )
 
     destination_trip_pk = db.relationship(
         "Trip",
-        foreign_keys= 'Trip.destination_terminal_id',
-        back_populates = "destination_fk"
+        foreign_keys='Trip.destination_terminal_id',
+        back_populates="destination_fk"
     )
 
     terminal_jeep_pk = db.relationship(
         "TerminalJeepneys",
         foreign_keys='TerminalJeepneys.terminal_id',
-        back_populates='terminal_jeep_fk'
+        back_populates='terminal_jeep_fk',
+        cascade="all, delete-orphan",
+        passive_deletes=True
     )
 
     favorite_terminal_pk = db.relationship(
         "Userfavorite",
         foreign_keys='Userfavorite.terminal_id',
-        back_populates='favorite_terminal_fk'
+        back_populates='favorite_terminal_fk',
+        cascade="all, delete-orphan",
+        passive_deletes=True
     )
 
     def __repr__(self):
         return f"<terminal {self.terminal_name}>"
+
 
 class Route(db.Model):
 
@@ -135,27 +149,32 @@ class Route(db.Model):
 
     start_terminal = db.relationship(
         "Terminal",
-        foreign_keys = [start_terminal_id],
-        back_populates = "origin_route"
+        foreign_keys=[start_terminal_id],
+        back_populates="origin_route"
     )
 
     end_terminal = db.relationship(
         "Terminal",
-        foreign_keys = [end_terminal_id],
-        back_populates = "destination_route"
+        foreign_keys=[end_terminal_id],
+        back_populates="destination_route"
     )
 
     trip_pk = db.relationship(
         "Trip",
-        foreign_keys = 'Trip.route_id',
-        back_populates = "route_fk"
+        foreign_keys='Trip.route_id',
+        back_populates="route_fk",
+        cascade="all, delete-orphan",
+        passive_deletes=True
     )
 
     favorite_route_pk = db.relationship(
         "Userfavorite",
         foreign_keys='Userfavorite.route_id',
-        back_populates='favorite_route_fk'
+        back_populates='favorite_route_fk',
+        cascade="all, delete-orphan",
+        passive_deletes=True
     )
+
 
 # jeepneys
 
@@ -173,15 +192,20 @@ class Jeepney(db.Model):
 
     trip_pk = db.relationship(
         "Trip",
-        foreign_keys = "Trip.jeepney_id",
-        back_populates = "jeepney_fk"
+        foreign_keys="Trip.jeepney_id",
+        back_populates="jeepney_fk",
+        cascade="all, delete-orphan",
+        passive_deletes=True
     )
 
     jeep_jeep_pk = db.relationship(
         "TerminalJeepneys",
-        foreign_keys= "TerminalJeepneys.jeepney_id",
-        back_populates='jeep_jeep_fk'
+        foreign_keys="TerminalJeepneys.jeepney_id",
+        back_populates='jeep_jeep_fk',
+        cascade="all, delete-orphan",
+        passive_deletes=True
     )
+
 
 class Trip(db.Model):
     __tablename__ = "trips"
@@ -190,13 +214,13 @@ class Trip(db.Model):
 
     jeepney_id = db.Column(
         db.Integer,
-        db.ForeignKey('jeepneys.jeepney_id'),
+        db.ForeignKey('jeepneys.jeepney_id', ondelete="CASCADE"),
         nullable=False
     )
 
     route_id = db.Column(
         db.Integer,
-        db.ForeignKey('routes.route_id'),
+        db.ForeignKey('routes.route_id', ondelete="CASCADE"),
         nullable=False
     )
 
@@ -215,7 +239,7 @@ class Trip(db.Model):
         nullable=False,
         default=datetime.utcnow
     )
-    arrival_time = db.Column(db.DateTime, nullable=True)  # or False if required
+    arrival_time = db.Column(db.DateTime, nullable=True)
 
     status = db.Column(
         db.Enum('Scheduled', 'Waiting', 'En Route', 'Arrived', 'Completed', 'Cancelled', name='trip_status'),
@@ -226,20 +250,20 @@ class Trip(db.Model):
     # relationship
     jeepney_fk = db.relationship(
         "Jeepney",
-        foreign_keys = [jeepney_id],
-        back_populates = 'trip_pk'
+        foreign_keys=[jeepney_id],
+        back_populates='trip_pk'
     )
 
     route_fk = db.relationship(
         "Route",
-        foreign_keys = [route_id],
-        back_populates = 'trip_pk'
+        foreign_keys=[route_id],
+        back_populates='trip_pk'
     )
 
     origin_fk = db.relationship(
         "Terminal",
-        foreign_keys = [origin_terminal_id],
-        back_populates = 'origin_trip_pk'
+        foreign_keys=[origin_terminal_id],
+        back_populates='origin_trip_pk'
     )
 
     destination_fk = db.relationship(
@@ -251,16 +275,22 @@ class Trip(db.Model):
     seats_pk = db.relationship(
         "Seat",
         back_populates="trip_fk",
-        uselist=False
+        uselist=False,
+        cascade="all, delete-orphan",
+        passive_deletes=True
     )
 
     notification_trip_pk = db.relationship(
         "Notification",
         foreign_keys='Notification.trip_id',
-        back_populates="notification_trip_fk"
+        back_populates="notification_trip_fk",
+        cascade="all, delete-orphan",
+        passive_deletes=True
     )
 
+
 # trip seats
+
 class Seat(db.Model):
 
     __tablename__ = "seats"
@@ -269,7 +299,7 @@ class Seat(db.Model):
 
     trip_id = db.Column(
         db.Integer,
-        db.ForeignKey('trips.trip_id'),
+        db.ForeignKey('trips.trip_id', ondelete="CASCADE"),
         nullable=False
     )
 
@@ -280,8 +310,8 @@ class Seat(db.Model):
     last_updated = db.Column(
         db.DateTime,
         nullable=False,
-        server_default=func.now(),  # DEFAULT CURRENT_TIMESTAMP
-        onupdate=func.now()  # updates timestamp when row changes
+        server_default=func.now(),
+        onupdate=func.now()
     )
 
     trip_fk = db.relationship(
@@ -292,20 +322,23 @@ class Seat(db.Model):
 
 
 # terminal jeepneys
+
 class TerminalJeepneys(db.Model):
     __tablename__ = "terminaljeeps"
 
     terminal_jeep_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+
     terminal_id = db.Column(
         db.Integer,
-        db.ForeignKey('terminals.terminal_id'),
+        db.ForeignKey('terminals.terminal_id', ondelete="CASCADE"),
         nullable=False
     )
     jeepney_id = db.Column(
         db.Integer,
-        db.ForeignKey('jeepneys.jeepney_id'),
+        db.ForeignKey('jeepneys.jeepney_id', ondelete="CASCADE"),
         nullable=False
     )
+
     arrival_time = db.Column(db.DateTime, nullable=False)
     departure_time = db.Column(db.DateTime, nullable=True)
 
@@ -330,28 +363,30 @@ class TerminalJeepneys(db.Model):
         back_populates='jeep_jeep_pk'
     )
 
-#user_favorites
+
+# user_favorites
 
 class Userfavorite(db.Model):
 
     __tablename__ = "userfavorites"
 
     favorite_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+
     user_id = db.Column(
         db.Integer,
-        db.ForeignKey('users.user_id'),
+        db.ForeignKey('users.user_id', ondelete="CASCADE"),
         nullable=False
     )
 
     terminal_id = db.Column(
         db.Integer,
-        db.ForeignKey('terminals.terminal_id'),
+        db.ForeignKey('terminals.terminal_id', ondelete="CASCADE"),
         nullable=False
     )
 
     route_id = db.Column(
         db.Integer,
-        db.ForeignKey('routes.route_id'),
+        db.ForeignKey('routes.route_id', ondelete="CASCADE"),
         nullable=False
     )
 
@@ -391,16 +426,16 @@ class Notification(db.Model):
     __tablename__ = "notifications"
 
     notification_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+
     user_id = db.Column(
         db.Integer,
-        db.ForeignKey('users.user_id'),
+        db.ForeignKey('users.user_id', ondelete="CASCADE"),
         nullable=False
     )
 
-
     trip_id = db.Column(
         db.Integer,
-        db.ForeignKey('trips.trip_id'),
+        db.ForeignKey('trips.trip_id', ondelete="CASCADE"),
         nullable=False
     )
 
@@ -435,7 +470,8 @@ class Notification(db.Model):
         back_populates="notification_trip_pk"
     )
 
-#audt_log
+
+# audt_log
 
 class Auditlog(db.Model):
 
@@ -445,14 +481,14 @@ class Auditlog(db.Model):
 
     user_id = db.Column(
         db.Integer,
-        db.ForeignKey('users.user_id'),
+        db.ForeignKey('users.user_id', ondelete="CASCADE"),
         nullable=False
     )
 
     table_name = db.Column(db.String(100), nullable=False)
     record_id = db.Column(db.Integer, nullable=False)
     action = db.Column(
-        db.Enum('INSERT','UPDATE', 'DELETE', name='actions')
+        db.Enum('INSERT', 'UPDATE', 'DELETE', name='actions')
     )
     timestamp = db.Column(
         db.DateTime,

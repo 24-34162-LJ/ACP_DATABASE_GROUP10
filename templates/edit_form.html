@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %} Edit {{ model|capitalize }} {% endblock %}
+{% block content %}
+
+<h2>Edit {{ model|capitalize }}</h2>
+
+<style>
+    .btn-area {
+        margin-top: 20px;
+        display: flex;
+        gap: 10px;
+    }
+
+    .save-btn, .cancel-btn {
+        padding: 8px 16px;
+        font-size: 15px;
+        cursor: pointer;
+        border: none;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .save-btn {
+        background: #007bff;
+        color: white;
+    }
+    .save-btn:hover {
+        background: #006ae6;
+    }
+
+    .cancel-btn {
+        background: #dc3545;
+        color: white;
+        text-decoration: none;
+    }
+    .cancel-btn:hover {
+        background: #c82333;
+    }
+
+    .icon {
+        font-size: 18px;
+    }
+</style>
+
+<form method="post">
+    {{ form.hidden_tag() }}
+
+    {# ===================== USERS ===================== #}
+    {% if model == "users" %}
+        {{ form.first_name.label }}<br>{{ form.first_name() }}<br><br>
+        {{ form.last_name.label }}<br>{{ form.last_name() }}<br><br>
+        {{ form.email.label }}<br>{{ form.email() }}<br><br>
+        {{ form.password_hash.label }}<br>{{ form.password_hash() }}<br><br>
+        {{ form.role.label }}<br>{{ form.role() }}<br><br>
+        {{ form.level.label }}<br>{{ form.level() }}<br><br>
+        {{ form.xp_points.label }}<br>{{ form.xp_points() }}<br><br>
+    {% endif %}
+
+    {# ===================== TERMINALS ===================== #}
+    {% if model == "terminals" %}
+        {{ form.terminal_name.label }}<br>{{ form.terminal_name() }}<br><br>
+        {{ form.location.label }}<br>{{ form.location() }}<br><br>
+        {{ form.status.label }}<br>{{ form.status() }}<br><br>
+        {{ form.is_main.label }}<br>{{ form.is_main() }}<br><br>
+    {% endif %}
+
+    {# ===================== ROUTES ===================== #}
+    {% if model == "routes" %}
+        {{ form.route_name.label }}<br>{{ form.route_name() }}<br><br>
+        {{ form.start_terminal_id.label }}<br>{{ form.start_terminal_id() }}<br><br>
+        {{ form.end_terminal_id.label }}<br>{{ form.end_terminal_id() }}<br><br>
+        {{ form.estimated_time_minutes.label }}<br>{{ form.estimated_time_minutes() }}<br><br>
+    {% endif %}
+
+    {# ===================== JEEPNEYS ===================== #}
+    {% if model == "jeepneys" %}
+        {{ form.plate_number.label }}<br>{{ form.plate_number() }}<br><br>
+        {{ form.capacity.label }}<br>{{ form.capacity() }}<br><br>
+        {{ form.status.label }}<br>{{ form.status() }}<br><br>
+    {% endif %}
+
+    {# ===================== TRIPS ===================== #}
+    {% if model == "trips" %}
+        {{ form.jeepney_id.label }}<br>{{ form.jeepney_id() }}<br><br>
+        {{ form.route_id.label }}<br>{{ form.route_id() }}<br><br>
+        {{ form.origin_terminal_id.label }}<br>{{ form.origin_terminal_id() }}<br><br>
+        {{ form.destination_terminal_id.label }}<br>{{ form.destination_terminal_id() }}<br><br>
+        {{ form.departure_time.label }}<br>{{ form.departure_time() }}<br><br>
+        {{ form.arrival_time.label }}<br>{{ form.arrival_time() }}<br><br>
+        {{ form.status.label }}<br>{{ form.status() }}<br><br>
+    {% endif %}
+
+    {# ===================== SEATS ===================== #}
+    {% if model == "seats" %}
+        {{ form.trip_id.label }}<br>{{ form.trip_id() }}<br><br>
+        {{ form.total_seats.label }}<br>{{ form.total_seats() }}<br><br>
+        {{ form.available_seats.label }}<br>{{ form.available_seats() }}<br><br>
+        {{ form.occupied_seats.label }}<br>{{ form.occupied_seats() }}<br><br>
+    {% endif %}
+
+    {# ===================== TERMINAL JEEPS ===================== #}
+    {% if model == "terminaljeeps" %}
+        {{ form.terminal_id.label }}<br>{{ form.terminal_id() }}<br><br>
+        {{ form.jeepney_id.label }}<br>{{ form.jeepney_id() }}<br><br>
+        {{ form.arrival_time.label }}<br>{{ form.arrival_time() }}<br><br>
+        {{ form.departure_time.label }}<br>{{ form.departure_time() }}<br><br>
+        {{ form.status.label }}<br>{{ form.status() }}<br><br>
+        {{ form.current_passengers.label }}<br>{{ form.current_passengers() }}<br><br>
+    {% endif %}
+
+    {# ===================== USER FAVORITES ===================== #}
+    {% if model == "userfavorites" %}
+        {{ form.user_id.label }}<br>{{ form.user_id() }}<br><br>
+        {{ form.terminal_id.label }}<br>{{ form.terminal_id() }}<br><br>
+        {{ form.route_id.label }}<br>{{ form.route_id() }}<br><br>
+        {{ form.label.label }}<br>{{ form.label() }}<br><br>
+    {% endif %}
+
+    {# ===================== NOTIFICATIONS ===================== #}
+    {% if model == "notifications" %}
+        {{ form.user_id.label }}<br>{{ form.user_id() }}<br><br>
+        {{ form.trip_id.label }}<br>{{ form.trip_id() }}<br><br>
+        {{ form.type_nof.label }}<br>{{ form.type_nof() }}<br><br>
+        {{ form.message.label }}<br>{{ form.message() }}<br><br>
+        {{ form.is_read.label }}<br>{{ form.is_read() }}<br><br>
+    {% endif %}
+
+    {# ===================== AUDIT LOG ===================== #}
+    {% if model == "auditlogs" %}
+        {{ form.user_id.label }}<br>{{ form.user_id() }}<br><br>
+        {{ form.table_name.label }}<br>{{ form.table_name() }}<br><br>
+        {{ form.record_id.label }}<br>{{ form.record_id() }}<br><br>
+        {{ form.action.label }}<br>{{ form.action() }}<br><br>
+        {{ form.description.label }}<br>{{ form.description() }}<br><br>
+    {% endif %}
+
+    <div class="btn-area">
+
+        <!-- SAVE BUTTON -->
+        <button class="save-btn" type="submit">
+            <span class="icon">save</span> Save
+        </button>
+
+        <!-- CANCEL BUTTON -->
+        <a href="{{ url_for('view') }}" class="cancel-btn">
+            <span class="icon">✖</span> Cancel
+        </a>
+
+    </div>
+
+</form>
+
+{% endblock %}

@@ -1,67 +1,210 @@
 {% extends "base.html" %}
-{% block title %} Database Content {% endblock %}
+{% block title %}Database Content{% endblock %}
 {% block content %}
 
 <style>
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 35px;
-    background: white;
-}
-th, td {
-    border: 1px solid #ccc;
-    padding: 6px 10px;
-    font-size: 14px;
-}
-th {
-    background: #333;
-    color: white;
-}
-.section-title {
-    margin-top: 40px;
-    margin-bottom: 10px;
-}
+    .db-layout {
+        display: grid;
+        grid-template-columns: 220px 1fr;
+        gap: 20px;
+        align-items: flex-start;
+    }
+
+    .db-sidebar {
+        position: sticky;
+        top: 80px;
+        background: #ffffff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 12px 14px;
+        font-size: 14px;
+    }
+
+    .db-sidebar h3 {
+        margin-top: 0;
+        font-size: 16px;
+        margin-bottom: 8px;
+    }
+
+    .db-sidebar ul {
+        list-style: none;
+        padding-left: 0;
+        margin: 0;
+    }
+
+    .db-sidebar li {
+        margin-bottom: 4px;
+    }
+
+    .db-sidebar a {
+        text-decoration: none;
+        color: #007bff;
+    }
+
+    .db-sidebar a:hover {
+        text-decoration: underline;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 35px;
+        background: white;
+        font-size: 13px;
+    }
+
+    th, td {
+        border: 1px solid #ccc;
+        padding: 6px 10px;
+    }
+
+    th {
+        background: #333;
+        color: white;
+    }
+
+    .section-title {
+        margin-top: 40px;
+        margin-bottom: 10px;
+    }
+
+    .actions {
+        white-space: nowrap;
+    }
+
+    .actions a,
+    .actions form {
+        display: inline-block;
+        margin: 0 3px;
+    }
+
+    .actions button {
+        font-size: 11px;
+        padding: 3px 8px;
+        border-radius: 4px;
+        border: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .actions .btn-edit {
+        background: #17a2b8;
+        color: #fff;
+    }
+
+    .actions .btn-edit:hover {
+        background: #138496;
+    }
+
+    .actions .btn-delete {
+        background: #dc3545;
+        color: #fff;
+    }
+
+    .actions .btn-delete:hover {
+        background: #c82333;
+    }
+
+    .db-header {
+        margin-bottom: 15px;
+    }
+
+    .db-header h1 {
+        margin-bottom: 4px;
+    }
+
+    .db-header p {
+        margin: 0;
+        font-size: 14px;
+        color: #555;
+    }
 </style>
 
-<h1>📊 Complete Database Viewer</h1>
-<p>This page displays all records from your entire database.</p>
+<div class="db-header">
+    <h1>📊 Complete Database Viewer</h1>
+    <p>View, update, or delete records from your entire database.</p>
+</div>
 
-{% macro render_table(title, items) %}
-<h2 class="section-title">{{ title }}</h2>
+<div class="db-layout">
+    <!-- LEFT: QUICK NAV -->
+    <aside class="db-sidebar">
+        <h3>Tables</h3>
+        <ul>
+            <li><a href="#users">Users</a></li>
+            <li><a href="#terminals">Terminals</a></li>
+            <li><a href="#jeepneys">Jeepneys</a></li>
+            <li><a href="#terminaljeeps">Terminal Queue</a></li>
+            <li><a href="#trips">Trips</a></li>
+            <li><a href="#seats">Seat Records</a></li>
+            <li><a href="#routes">Routes</a></li>
+            <li><a href="#userfavorites">User Favorites</a></li>
+            <li><a href="#notifications">Notifications</a></li>
+            <li><a href="#auditlogs">Audit Logs</a></li>
+        </ul>
+    </aside>
 
-{% if items|length == 0 %}
-    <p><i>No data found.</i></p>
-{% else %}
-    <table>
-        <tr>
-        {% for col in items[0].__table__.columns %}
-            <th>{{ col.name }}</th>
-        {% endfor %}
-        </tr>
+    <!-- RIGHT: TABLES -->
+    <div>
+        {% macro render_table(title, items, model_name, id_attr, anchor_id) %}
+        <h2 class="section-title" id="{{ anchor_id }}">{{ title }}</h2>
 
-        {% for row in items %}
-        <tr>
-            {% for col in row.__table__.columns %}
-                <td>{{ row[col.name] }}</td>
-            {% endfor %}
-        </tr>
-        {% endfor %}
-    </table>
-{% endif %}
-{% endmacro %}
+        {% if items|length == 0 %}
+            <p><i>No data found.</i></p>
+        {% else %}
+            <table>
+                <tr>
+                    {% for col in items[0].__table__.columns %}
+                        <th>{{ col.name }}</th>
+                    {% endfor %}
+                    <th>Actions</th>
+                </tr>
 
+                {% for row in items %}
+                <tr>
+                    {% for col in row.__table__.columns %}
+                        <td>{{ row|attr(col.name) }}</td>
+                    {% endfor %}
 
-<!-- AUTO GENERATES TABLES FOR ALL MODELS -->
-{{ render_table("Users", data.users) }}
-{{ render_table("Terminals", data.terminals) }}
-{{ render_table("Jeepneys", data.jeepneys) }}
-{{ render_table("Terminal Queue (TerminalJeepneys)", data.terminal_queue) }}
-{{ render_table("Trips", data.trips) }}
-{{ render_table("Seat Records", data.seats) }}
-{{ render_table("Routes", data.routes) }}
-{{ render_table("User Favorites", data.favorites) }}
-{{ render_table("Notifications", data.notifications) }}
-{{ render_table("Audit Logs", data.auditlogs) }}
+                    <td class="actions">
+                        <!-- UPDATE BUTTON — goes to /edit/<model>/<id> -->
+                        <a href="{{ url_for('update_record',
+                                            model=model_name,
+                                            id=row|attr(id_attr)) }}">
+                            <button type="button" class="btn-edit">
+                                ✏️ Edit
+                            </button>
+                        </a>
+
+                        <!-- DELETE BUTTON — generic delete route -->
+                        <form method="post"
+                              action="{{ url_for('delete_record',
+                                                 model=model_name,
+                                                 id=row|attr(id_attr)) }}"
+                              onsubmit="return confirm('Are you sure you want to delete this record?');">
+                            <button type="submit" class="btn-delete">
+                                🗑️ Delete
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        {% endif %}
+        {% endmacro %}
+
+        {{ render_table("Users", data.users, "users", "user_id", "users") }}
+        {{ render_table("Terminals", data.terminals, "terminals", "terminal_id", "terminals") }}
+        {{ render_table("Jeepneys", data.jeepneys, "jeepneys", "jeepney_id", "jeepneys") }}
+        {{ render_table("Terminal Queue (TerminalJeepneys)", data.terminal_queue, "terminaljeeps", "terminal_jeep_id", "terminaljeeps") }}
+        {{ render_table("Trips", data.trips, "trips", "trip_id", "trips") }}
+        {{ render_table("Seat Records", data.seats, "seats", "trip_seat_id", "seats") }}
+        {{ render_table("Routes", data.routes, "routes", "route_id", "routes") }}
+        {{ render_table("User Favorites", data.favorites, "userfavorites", "favorite_id", "userfavorites") }}
+        {{ render_table("Notifications", data.notifications, "notifications", "notification_id", "notifications") }}
+        {{ render_table("Audit Logs", data.auditlogs, "auditlogs", "audit_id", "auditlogs") }}
+    </div>
+</div>
 
 {% endblock %}
