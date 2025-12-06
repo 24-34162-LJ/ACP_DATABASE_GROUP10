@@ -175,8 +175,9 @@
       border-radius: 10px 14px 14px 10px;
       background: #ffca28;
       border: 2px solid #212121;
-      top: 10px;
-      left: 10%;
+      top: 50%;
+      transform: translateY(-50%);
+      left: 0%;
       box-shadow: 0 0 4px rgba(0,0,0,.5);
       opacity: 0;
       cursor: pointer;
@@ -194,12 +195,27 @@
       box-shadow: 10px 0 0 #212121;
     }
 
-    /* animations */
-    @keyframes jeep-in   { 0% { left: 85%; } 100% { left: 45%; } }
-    @keyframes jeep-out  { 0% { left: 45%; } 100% { left: 5%; } }
+    /* animations: full road, one direction */
+    @keyframes jeep-out {
+      from { left: 0%; }    /* near main terminal side */
+      to   { left: 100%; }  /* near corner terminal side */
+    }
 
-    .road.trip-in  .jeep-dot { opacity: 1; animation: jeep-in  3s linear infinite alternate; }
-    .road.trip-out .jeep-dot { opacity: 1; animation: jeep-out 3s linear infinite alternate; }
+    @keyframes jeep-in {
+      from { left: 100%; }  /* from corner terminal side */
+      to   { left: 0%; }    /* to main terminal side */
+    }
+
+    /* tie the animation to a CSS variable for timing */
+    .road.trip-out .jeep-dot {
+      opacity: 1;
+      animation: jeep-out var(--travel-time, 3s) linear forwards;
+    }
+
+    .road.trip-in .jeep-dot {
+      opacity: 1;
+      animation: jeep-in var(--travel-time, 3s) linear forwards;
+    }
 
     /* traffic light circle at end of road */
     .traffic-light {

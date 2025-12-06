@@ -56,8 +56,8 @@ function showSeatModal(trip) {
 
   seatId.textContent = trip.jeepney_id;
 
-  const cap = trip.capacity || 22;
-  const pass = trip.passengers || 0;
+  const cap = Number(trip.capacity) || 22;  // fallback 22 if something is wrong
+  const pass = Number(trip.passengers) || 0;
 
   let html = "";
   for (let i = 0; i < cap; i++) {
@@ -146,6 +146,8 @@ function handleTrips(trips) {
       const multiplier = (tlState === "red") ? 1.5 : 1.0;
       const travelTime = baseTime * multiplier;
 
+      road.style.setProperty("--travel-time", `${travelTime / 1000}s`);
+      
       const timer = setTimeout(() => {
         fetch("/api/trips/arrive", {
           method: "POST",
@@ -164,7 +166,6 @@ function handleTrips(trips) {
     }
   });
 }
-
 
 /******************************************************
  * BACKEND LIVE TRIPS POLLING

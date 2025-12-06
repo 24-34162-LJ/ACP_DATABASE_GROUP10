@@ -5,27 +5,53 @@
   <title>Jeep Terminal - 4 Terminals + Main Destination</title>
 
   <style>
-    body { font-family: Arial, sans-serif; background:#f3f3f3; padding:20px; }
+    body {
+      font-family: Arial, sans-serif;
+      background:#f3f3f3;
+      padding:20px;
+    }
 
+    /* ===================== LAYOUT GRID ===================== */
     .layout {
       display:grid;
-      grid-template-columns:230px 1fr;
-      grid-template-rows:auto auto auto;
+      grid-template-columns:260px 1fr;   /* left narrow, right wide */
+      grid-template-rows:auto auto;      /* 2 rows */
+      grid-template-areas:
+        "info main"
+        "queue origin";
       gap:20px;
     }
 
-    .panel {
+    .panel,
+    .panel1 {
       background:#fff;
       border-radius:8px;
       box-shadow:0 0 5px rgba(0,0,0,.1);
       padding:12px 15px 18px;
     }
 
+    /* place each panel in the grid */
+    #infoPanel {
+      grid-area: info;
+    }
+
+    #mainTerminalPanel {
+      grid-area: main;
+    }
+
+    #queuePanel {
+      grid-area: queue;
+    }
+
+    #originPanel {
+      grid-area: origin;
+    }
+
     /* ===================== ACTIVE JEEPS (4 TERMINALS) ===================== */
     .jeep-grid {
       display:grid;
       grid-template-columns:repeat(2, auto);
-      gap:50px 150px;  /* bigger spacing: row, column */
+      gap:50px 150px;  /* row, column */
       justify-content:center;
       margin-top:20px;
     }
@@ -266,6 +292,7 @@
       border-radius:5px;
       cursor:pointer;
     }
+
   </style>
 </head>
 <body>
@@ -273,7 +300,7 @@
 <div class="layout">
 
   <!-- LEFT INFO PANEL -->
-  <div class="panel">
+  <div class="panel" id="infoPanel">
     <h3>Jeep Information</h3>
     <p><strong>Jeep ID:</strong> <span id="infoId">–</span></p>
     <p><strong>From:</strong> <span id="infoLocation">–</span></p>
@@ -282,8 +309,28 @@
     <p><strong>Seats Left:</strong> <span id="infoLeft">–</span></p>
   </div>
 
-  <!-- 4 ORIGIN TERMINALS -->
-  <div class="panel">
+  <!-- MAIN TERMINAL (sakayan) -->
+  <div class="panel" id="mainTerminalPanel">
+    <h3>Main Destination Terminal (Sakayan)</h3>
+    <div class="main-jeep-wrapper">
+      <div class="main-jeep-box">
+        <div class="main-jeep-label" id="mainJeepLabel">Waiting for jeep...</div>
+        <div class="main-jeep main-jeep-empty" id="mainJeepBox">
+          <div class="jeep-id" id="mainJeepId">EMPTY</div>
+          <div class="jeep-count" id="mainJeepCount">0/22</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN TERMINAL QUEUE -->
+  <div class="panel" id="queuePanel">
+    <h3>Main Terminal Queue (Jeeps at Main)</h3>
+    <div class="queue-cars" id="queueCars"></div>
+  </div>
+
+  <!-- ORIGIN TERMINALS -->
+  <div class="panel1" id="originPanel">
     <h3>Origin Terminals (Loading Jeeps)</h3>
 
     <div class="jeep-grid">
@@ -313,29 +360,6 @@
         <div class="jeep-count"></div>
       </div>
     </div>
-  </div>
-
-  <!-- MAIN TERMINAL (sakayan) -->
-  <div class="panel">
-    <h3>Main Destination Terminal (Sakayan)</h3>
-    <div class="main-jeep-wrapper">
-      <div class="main-jeep-box">
-        <div class="main-jeep-label" id="mainJeepLabel">Waiting for jeep...</div>
-        <div class="main-jeep main-jeep-empty" id="mainJeepBox">
-          <div class="jeep-id" id="mainJeepId">EMPTY</div>
-          <div class="jeep-count" id="mainJeepCount">0/22</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- filler cell -->
-  <div></div>
-
-  <!-- QUEUE OF FULL JEEPS THAT ARRIVE TO MAIN TERMINAL -->
-  <div class="panel">
-    <h3>Main Terminal Queue (Jeeps at Main)</h3>
-    <div class="queue-cars" id="queueCars"></div>
   </div>
 
 </div>
@@ -567,8 +591,9 @@
     renderMainJeep();
   }
 
-  setInterval(tick, TICK_MS);
-
+  if (!window.__mainTerminalTickId) {
+    window.__mainTerminalTickId = setInterval(tick, TICK_MS);
+  }
   /* ------------------- LOAD INITIAL DATA ------------------- */
 
   jeepElems.forEach(el => {
