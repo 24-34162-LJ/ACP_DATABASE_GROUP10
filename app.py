@@ -56,6 +56,60 @@ FORM_MAP = {
     "auditlogs": AuditlogForm,
 }
 
+def set_form_choices(form, model):
+    """Fill SelectField choices depending on the model name."""
+    if model == "routes":
+        terminals = Terminal.query.all()
+        term_choices = [(t.terminal_id, t.terminal_name) for t in terminals]
+        form.start_terminal_id.choices = term_choices
+        form.end_terminal_id.choices = term_choices
+
+    elif model == "trips":
+        jeepneys = Jeepney.query.all()
+        routes = Route.query.all()
+        terminals = Terminal.query.all()
+
+        form.jeepney_id.choices = [(j.jeepney_id, j.plate_number) for j in jeepneys]
+        form.route_id.choices = [(r.route_id, r.route_name) for r in routes]
+        term_choices = [(t.terminal_id, t.terminal_name) for t in terminals]
+        form.origin_terminal_id.choices = term_choices
+        form.destination_terminal_id.choices = term_choices
+
+    elif model == "seats":
+        trips = Trip.query.all()
+        form.trip_id.choices = [(t.trip_id, f"Trip {t.trip_id}") for t in trips]
+
+    elif model == "terminaljeeps":
+        terminals = Terminal.query.all()
+        jeepneys = Jeepney.query.all()
+        form.terminal_id.choices = [(t.terminal_id, t.terminal_name) for t in terminals]
+        form.jeepney_id.choices = [(j.jeepney_id, j.plate_number) for j in jeepneys]
+
+    elif model == "userfavorites":
+        users = User.query.all()
+        terminals = Terminal.query.all()
+        routes = Route.query.all()
+        form.user_id.choices = [(u.user_id, f"{u.first_name} {u.last_name}") for u in users]
+        form.terminal_id.choices = [(t.terminal_id, t.terminal_name) for t in terminals]
+        form.route_id.choices = [(r.route_id, r.route_name) for r in routes]
+
+    elif model == "notifications":
+        users = User.query.all()
+        trips = Trip.query.all()
+        form.user_id.choices = [(u.user_id, f"{u.first_name} {u.last_name}") for u in users]
+        form.trip_id.choices = [(t.trip_id, f"Trip {t.trip_id}") for t in trips]
+
+    elif model == "auditlogs":
+        users = User.query.all()
+        form.user_id.choices = [(u.user_id, f"{u.first_name} {u.last_name}") for u in users]
+    
+    elif model == "jeepneys":
+    # 🔥 THIS is what fills the terminal dropdown
+        form.terminal_id.choices = [
+            (t.terminal_id, t.terminal_name) for t in Terminal.query.all()
+    ]
+
+
 # ---------------- BASIC PAGES ----------------
 @app.route('/home')
 def home():
@@ -210,7 +264,43 @@ def Add():
         flash("data added in database")
         return redirect(url_for("operator"))
     return render_template("terminal.html", form=form)
-    
+
+@app.route("/add/<model>", methods=["GET", "POST"])
+def add_record(model):
+    model = model.lower()
+    ModelClass = MODEL_MAP[model]
+    FormClass = FORM_MAP[model]
+
+    form = FormClass()
+
+    # important: set choices BEFORE validate_on_submit
+    set_form_choices(form, model)
+
+    if form.validate_on_submit():
+        # special case for users because of password hashing
+        if model == "jeepneys":
+            item = Jeepney(
+                plate_number=form.plate_number.data,
+                capacity=form.capacity.data,
+                status="Available"
+            )
+            db.session.add(item)
+            db.session.flush()  # get jeepney_id
+
+            # also attach to selected terminal
+            tj = TerminalJeepneys(
+                terminal_id=form.terminal_id.data,
+                jeepney_id=item.jeepney_id,
+                arrival_time=datetime.utcnow(),
+                status="Waiting",
+                current_passengers=0
+            )
+            db.session.add(tj)
+
+            db.session.commit()
+            return redirect(url_for("view"))
+
+    return render_template("add.html", form=form, model=model, action="add")
 
 @app.route('/delete/<string:model>/<int:id>', methods=['POST'])
 def delete_record(model, id):
@@ -234,85 +324,75 @@ def update_record(model, id):
 
     obj = model_class.query.get_or_404(id)
 
-    # Bind form to existing object
+    # Bind form to object
     form = form_class(obj=obj)
 
-    # ---------- fill choices for SelectFields depending on model ----------
+    # ---------- FILL CHOICES FOR SELECT FIELDS ----------
     if model == "routes":
-        form.start_terminal_id.choices = [
-            (t.terminal_id, t.terminal_name) for t in Terminal.query.all()
-        ]
-        form.end_terminal_id.choices = [
-            (t.terminal_id, t.terminal_name) for t in Terminal.query.all()
-        ]
+        terminals = Terminal.query.all()
+        form.start_terminal_id.choices = [(t.terminal_id, t.terminal_name) for t in terminals]
+        form.end_terminal_id.choices = [(t.terminal_id, t.terminal_name) for t in terminals]
 
-    if model == "trips":
-        form.jeepney_id.choices = [
-            (j.jeepney_id, j.plate_number) for j in Jeepney.query.all()
-        ]
-        form.route_id.choices = [
-            (r.route_id, r.route_name) for r in Route.query.all()
-        ]
-        form.origin_terminal_id.choices = [
-            (t.terminal_id, t.terminal_name) for t in Terminal.query.all()
-        ]
-        form.destination_terminal_id.choices = [
-            (t.terminal_id, t.terminal_name) for t in Terminal.query.all()
-        ]
+    elif model == "trips":
+        form.jeepney_id.choices = [(j.jeepney_id, j.plate_number) for j in Jeepney.query.all()]
+        form.route_id.choices = [(r.route_id, r.route_name) for r in Route.query.all()]
+        terminals = Terminal.query.all()
+        form.origin_terminal_id.choices = [(t.terminal_id, t.terminal_name) for t in terminals]
+        form.destination_terminal_id.choices = [(t.terminal_id, t.terminal_name) for t in terminals]
 
-    if model == "seats":
-        form.trip_id.choices = [
-            (t.trip_id, f"Trip {t.trip_id}") for t in Trip.query.all()
-        ]
+    elif model == "seats":
+        form.trip_id.choices = [(t.trip_id, f"Trip {t.trip_id}") for t in Trip.query.all()]
 
-    if model == "terminaljeeps":
-        form.terminal_id.choices = [
-            (t.terminal_id, t.terminal_name) for t in Terminal.query.all()
-        ]
-        form.jeepney_id.choices = [
-            (j.jeepney_id, j.plate_number) for j in Jeepney.query.all()
-        ]
+    elif model == "terminaljeeps":
+        form.terminal_id.choices = [(t.terminal_id, t.terminal_name) for t in Terminal.query.all()]
+        form.jeepney_id.choices = [(j.jeepney_id, j.plate_number) for j in Jeepney.query.all()]
 
-    if model == "userfavorites":
-        form.user_id.choices = [
-            (u.user_id, f"{u.first_name} {u.last_name}") for u in User.query.all()
-        ]
-        form.terminal_id.choices = [
-            (t.terminal_id, t.terminal_name) for t in Terminal.query.all()
-        ]
-        form.route_id.choices = [
-            (r.route_id, r.route_name) for r in Route.query.all()
-        ]
+    elif model == "userfavorites":
+        form.user_id.choices = [(u.user_id, f"{u.first_name} {u.last_name}") for u in User.query.all()]
+        form.terminal_id.choices = [(t.terminal_id, t.terminal_name) for t in Terminal.query.all()]
+        form.route_id.choices = [(r.route_id, r.route_name) for r in Route.query.all()]
 
-    if model == "notifications":
-        form.user_id.choices = [
-            (u.user_id, f"{u.first_name} {u.last_name}") for u in User.query.all()
-        ]
-        form.trip_id.choices = [
-            (t.trip_id, f"Trip {t.trip_id}") for t in Trip.query.all()
-        ]
+    elif model == "notifications":
+        form.user_id.choices = [(u.user_id, f"{u.first_name} {u.last_name}") for u in User.query.all()]
+        form.trip_id.choices = [(t.trip_id, f"Trip {t.trip_id}") for t in Trip.query.all()]
 
-    if model == "auditlogs":
-        form.user_id.choices = [
-            (u.user_id, f"{u.first_name} {u.last_name}") for u in User.query.all()
-        ]
+    elif model == "auditlogs":
+        form.user_id.choices = [(u.user_id, f"{u.first_name} {u.last_name}") for u in User.query.all()]
+        
+    elif model == "jeepneys":
+        # IMPORTANT — Jeepney terminal dropdown
+        form.terminal_id.choices = [(t.terminal_id, t.terminal_name) for t in Terminal.query.all()]
 
-    # ---------- handle POST ----------
+
+    # ---------- POST: Saving Changes ----------
     if form.validate_on_submit():
-        # Copy form data into the SQLAlchemy object
-        form.populate_obj(obj)
+
+        # ---- SPECIAL CASE: USERS (password hashing & handling) ----
+        if model == "users":
+            obj.first_name = form.first_name.data
+            obj.last_name = form.last_name.data
+            obj.email = form.email.data
+            obj.role = form.role.data
+            obj.level = form.level.data
+            obj.xp_points = form.xp_points.data
+
+            # If password was entered, update the hash
+            if form.password.data:
+                obj.password_hash = generate_password_hash(form.password.data)
+
+        else:
+            # Normal case
+            form.populate_obj(obj)
+
         db.session.commit()
         flash(f"{model.capitalize()} updated successfully!", "success")
-        return redirect(url_for('view'))   # back to your DB viewer
+        return redirect(url_for('view'))
 
-    # GET or failed validation
-    return render_template('edit_form.html', form=form, model=model)
-
+    return render_template("add.html", form=form, model=model, action="edit")
 
 @app.route("/admin")
 def admin():
     return render_template("admin.html")
-
 
 # ---------------- MAP + MAIN TERMINAL PAGES ----------------
 from flask import current_app

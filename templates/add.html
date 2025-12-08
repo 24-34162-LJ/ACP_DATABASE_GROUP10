@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% block title %} Edit {{ model|capitalize }} {% endblock %}
+{% block title %} {{ action|capitalize }} {{ model|capitalize }} {% endblock %}
 {% block content %}
 
-<h2>Edit {{ model|capitalize }}</h2>
+<h2>{{ action|capitalize }} {{ model|capitalize }}</h2>
 
 <style>
     .btn-area {
@@ -52,7 +52,15 @@
         {{ form.first_name.label }}<br>{{ form.first_name() }}<br><br>
         {{ form.last_name.label }}<br>{{ form.last_name() }}<br><br>
         {{ form.email.label }}<br>{{ form.email() }}<br><br>
-        {{ form.password_hash.label }}<br>{{ form.password_hash() }}<br><br>
+
+        {{ form.password.label }}<br>{{ form.password() }}<br>
+        {% if action == "edit" %}
+            <small style="color: gray;">Leave blank to keep current password.</small>
+        {% endif %}
+        <br><br>
+
+        {{ form.confirm_password.label }}<br>{{ form.confirm_password() }}<br><br>
+
         {{ form.role.label }}<br>{{ form.role() }}<br><br>
         {{ form.level.label }}<br>{{ form.level() }}<br><br>
         {{ form.xp_points.label }}<br>{{ form.xp_points() }}<br><br>
@@ -76,9 +84,28 @@
 
     {# ===================== JEEPNEYS ===================== #}
     {% if model == "jeepneys" %}
-        {{ form.plate_number.label }}<br>{{ form.plate_number() }}<br><br>
-        {{ form.capacity.label }}<br>{{ form.capacity() }}<br><br>
-        {{ form.status.label }}<br>{{ form.status() }}<br><br>
+
+    <h3>Add New Jeepney</h3>
+
+    <div class="form-group">
+        <label>Plate Number</label>
+        {{ form.plate_number(class="form-control", placeholder="e.g. ABC-123") }}
+    </div>
+
+    <div class="form-group">
+        <label>Capacity</label>
+        {{ form.capacity(class="form-control", min="1") }}
+    </div>
+
+    <div class="form-group">
+        <label>Assign to Terminal</label>
+        {{ form.terminal_id(class="form-control") }}
+    </div>
+
+    <div class="small-note" style="margin-top:10px; color:gray;">
+        This will create a new Jeepney record and attach it to this terminal’s queue as
+        <b>Waiting</b>.
+    </div>
     {% endif %}
 
     {# ===================== TRIPS ===================== #}
@@ -140,12 +167,12 @@
 
         <!-- SAVE BUTTON -->
         <button class="save-btn" type="submit">
-            <span class="icon">save</span> Save
+            {{ action|capitalize }}
         </button>
 
         <!-- CANCEL BUTTON -->
         <a href="{{ url_for('view') }}" class="cancel-btn">
-            <span class="icon">✖</span> Cancel
+            ✖ Cancel
         </a>
 
     </div>

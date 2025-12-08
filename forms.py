@@ -105,10 +105,16 @@ class UserForm(FlaskForm):
         validators=[DataRequired(), Email()]
     )
     
-    password_hash = StringField(
-        "Password Hash",
-        validators=[DataRequired()]
-    )
+    password = PasswordField (
+        "Password",
+        validators=[DataRequired(), Length(min=6)]
+    )# to get the password
+
+    confirm_password = PasswordField (
+        "Confirm Password",
+        validators=[DataRequired(), EqualTo('password')]
+    )# to make sure the password is same
+
 
     role = SelectField(
         "Role",
@@ -189,6 +195,11 @@ class JeepneyForm(FlaskForm):
         "Capacity", 
         validators=[DataRequired()]
     )
+    terminal_id = SelectField(
+        "Assign to Terminal",
+        coerce=int,
+        validators=[DataRequired()]
+    )
     status = SelectField(
         "Status",
         choices=[
@@ -197,7 +208,9 @@ class JeepneyForm(FlaskForm):
             ("Maintenance", "Maintenance"),
             ("Inactive", "Inactive"),
         ],
+        default="Available",
         validators=[DataRequired()],
+        
     )
     submit = SubmitField("Save Jeepney")
 
@@ -345,7 +358,6 @@ class UserfavoriteForm(FlaskForm):
 
 
 # ---------- NOTIFICATION ----------
-
 class NotificationForm(FlaskForm):
     user_id = SelectField(
         "User",
