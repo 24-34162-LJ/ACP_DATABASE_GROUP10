@@ -382,12 +382,8 @@
   const MAIN_MIN_FILL = 1.0;
 
   // 4 origin displays (blue boxes)
-  let originJeeps = [
-    { id: null, terminalName: "Terminal 1", originTerminalId: null, passengers: 0, capacity: CAPACITY },
-    { id: null, terminalName: "Terminal 2", originTerminalId: null, passengers: 0, capacity: CAPACITY },
-    { id: null, terminalName: "Terminal 3", originTerminalId: null, passengers: 0, capacity: CAPACITY },
-    { id: null, terminalName: "Terminal 4", originTerminalId: null, passengers: 0, capacity: CAPACITY },
-  ];
+  let originJeeps = {};  // dictionary keyed by terminal_id
+
 
   // NOW: departedQueue represents REAL queue at MAIN terminal
   let departedQueue = [];
@@ -456,6 +452,13 @@
   function closeSeatModal() {
     seatModalBg.style.display = "none";
   }
+    function clearInfo() {
+    infoId.textContent = "–";
+    infoLocation.textContent = "–";
+    infoCap.textContent = "–";
+    infoPass.textContent = "–";
+    infoLeft.textContent = "–";
+  }
 
   function updateInfo(j) {
     infoId.textContent = j.id;
@@ -468,13 +471,28 @@
   /* ------------------- RENDERING ------------------- */
 
   function renderOriginJeeps() {
-    originJeeps.forEach((j, i) => {
-      const el = jeepElems[i];
+    const terminalIds = [2, 3, 4, 5]; // slot mapping
+    terminalIds.forEach((terminalId, index) => {
+
+      const el = jeepElems[index]; 
       if (!el) return;
-      el.querySelector(".jeep-id").textContent = j.id ? `Jeep ${j.id}` : "No jeep";
-      el.querySelector(".jeep-count").textContent = `${j.passengers}/${j.capacity}`;
+
+      const data = originJeeps[terminalId];
+
+      if (!data) {
+        el.querySelector(".terminal-label").textContent = `Terminal ${terminalId}`;
+        el.querySelector(".jeep-id").textContent = "No jeep";
+        el.querySelector(".jeep-count").textContent = "0/22";
+        return;
+      }
+
+      el.querySelector(".terminal-label").textContent = data.terminalName;
+      el.querySelector(".jeep-id").textContent = data.id ? `${data.plate}` : "No jeep";
+      el.querySelector(".jeep-count").innerHTML =
+        `${data.passengers}/${data.capacity}<br><small>${data.action}</small>`;
     });
   }
+
 
   function renderMainJeep() {
     if (!mainJeep) {
@@ -482,6 +500,9 @@
       mainJeepIdEl.textContent = "EMPTY";
       mainJeepCountEl.textContent = "0/22";
       mainJeepLabel.textContent = "Waiting for jeep...";
+
+      // Jeep Information panel: nothing at main
+      clearInfo();
       return;
     }
 
@@ -494,7 +515,12 @@
     } else {
       mainJeepLabel.textContent = `Loading (to ${mainJeep.originName})`;
     }
+
+    // 🔴 THIS is the important part:
+    // Always sync Jeep Information with the jeep at Main Terminal
+    updateInfo(mainJeep);
   }
+
 
   function renderQueue() {
     queueCarsEl.innerHTML = "";
@@ -618,34 +644,19 @@
     fetch("/api/main/origin-jeeps")
       .then(r => r.json())
       .then(data => {
-        // reset origins only
-        originJeeps.forEach(j => {
-          j.id = null;
-          j.passengers = 0;
-          j.capacity = CAPACITY;
-          j.originTerminalId = null;
-        });
 
-        data.forEach((row, idx) => {
-          const capacity = row.capacity ?? CAPACITY;
-          const passengers = row.passengers ?? capacity;
+        originJeeps = {}; // reset
 
-          const jeepData = {
+        data.forEach(row => {
+          originJeeps[row.terminal_id] = {
+            terminalId: row.terminal_id,
+            terminalName: row.terminal_name,
             id: row.jeepney_id,
-            originName: row.terminal_name,
-            originTerminalId: row.terminal_id,
-            passengers,
-            capacity,
-            terminalName: row.terminal_name
+            plate: row.plate_number,
+            passengers: row.passengers ?? 0,
+            capacity: row.capacity ?? CAPACITY,
+            action: row.action_status || "Idle"
           };
-
-          if (idx < originJeeps.length) {
-            originJeeps[idx].id = jeepData.id;
-            originJeeps[idx].terminalName = jeepData.originName;
-            originJeeps[idx].originTerminalId = jeepData.originTerminalId;
-            originJeeps[idx].passengers = jeepData.passengers;
-            originJeeps[idx].capacity = jeepData.capacity;
-          }
         });
 
         renderOriginJeeps();
