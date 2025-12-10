@@ -14,6 +14,7 @@ from forms import (
 
 from datetime import datetime
 from sqlalchemy import func
+from functools import wraps
 
 # ---------------- GLOBAL CONSTANTS ----------------
 MAIN_TERMINAL_ID = 1
@@ -108,6 +109,34 @@ def set_form_choices(form, model):
         form.terminal_id.choices = [
             (t.terminal_id, t.terminal_name) for t in Terminal.query.all()
     ]
+
+def roles_required(*allowed_roles):
+    """
+    Usage:
+        @roles_required("admin", "operator")
+        def some_view(): ...
+    """
+    def decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            user_id = session.get("user_id")
+            if not user_id:
+                flash("Please log in first.", "warning")
+                return redirect(url_for("login"))
+
+            user = User.query.get(user_id)
+            if not user:
+                flash("User not found. Please log in again.", "danger")
+                return redirect(url_for("login"))
+
+            if user.role not in allowed_roles:
+                # you can flash a message or just abort
+                flash("You are not allowed to access this page.", "danger")
+                return abort(403)
+
+            return f(*args, **kwargs)
+        return wrapper
+    return decorator
 
 
 # ---------------- BASIC PAGES ----------------
@@ -245,25 +274,49 @@ def operator_seat(terminal_id):
         terminal_name=terminal.terminal_name
     )
 
-
 @app.route("/addterminal", methods=['GET', 'POST'])
+@roles_required("admin", "operator")
 def Add():
     form = AddTerminal()
 
     if form.validate_on_submit():
         terminal_name = form.terminal_name.data
         location = form.location.data
+        route_name = form.route_name.data
+        est_time = form.estimated_time_minutes.data
 
+        # 1) Create terminal
         terminal = Terminal(
             terminal_name=terminal_name,
             location=location
         )
-
         db.session.add(terminal)
+        db.session.flush()   # so terminal.terminal_id is available
+
+        # 2) Decide start & end terminal for the route
+        main_id = current_app.config["MAIN_TERMINAL_ID"]
+
+        # 3) Fallback default if user left estimated_time empty
+        if est_time is None:
+            est_time = 0   # or 15, or whatever you want as default
+
+        # 4) Create route row
+        route = Route(
+            route_name=route_name,
+            start_terminal_id=main_id,
+            end_terminal_id=terminal.terminal_id,
+            estimated_time_minutes=est_time
+        )
+        db.session.add(route)
+
+        # 5) Save everything
         db.session.commit()
-        flash("data added in database")
+
+        flash("Terminal and route added to database", "success")
         return redirect(url_for("operator"))
+
     return render_template("terminal.html", form=form)
+
 
 @app.route("/add/<model>", methods=["GET", "POST"])
 def add_record(model):
@@ -302,7 +355,62 @@ def add_record(model):
 
     return render_template("add.html", form=form, model=model, action="add")
 
+@app.route("/favorites/add", methods=["POST"])
+def add_favorite():
+    """
+    Add a favorite terminal or route for the current user.
+    Accepts form or JSON:
+      - terminal_id (optional)
+      - route_id (optional)
+      - label (optional)
+    At least one of terminal_id / route_id must be present.
+    """
+    user_id = session.get("user_id")
+
+    # support both form and JSON
+    data = request.get_json(silent=True) or request.form
+
+    terminal_id = data.get("terminal_id")
+    route_id = data.get("route_id")
+    label = (data.get("label") or "").strip()
+
+    # convert to int if not None
+    terminal_id = int(terminal_id) if terminal_id else None
+    route_id = int(route_id) if route_id else None
+
+    if not terminal_id and not route_id:
+        return jsonify({"error": "terminal_id or route_id is required"}), 400
+
+    # avoid duplicate favorites for same combination
+    existing = Userfavorite.query.filter_by(
+        user_id=user_id,
+        terminal_id=terminal_id,
+        route_id=route_id
+    ).first()
+
+    if existing:
+        # optionally update label if user entered a new one
+        if label and existing.label != label:
+            existing.label = label
+            db.session.commit()
+            return jsonify({"message": "Label updated for existing favorite"}), 200
+
+        return jsonify({"message": "Already in favorites"}), 200
+
+    fav = Userfavorite(
+        user_id=user_id,
+        terminal_id=terminal_id,
+        route_id=route_id,
+        label=label
+    )
+    db.session.add(fav)
+    db.session.commit()
+
+    return jsonify({"message": "Added to favorites"}), 201
+
+
 @app.route('/delete/<string:model>/<int:id>', methods=['POST'])
+@roles_required("admin", "operator")
 def delete_record(model, id):
     model_class = MODEL_MAP.get(model)
     if model_class is None:
@@ -314,7 +422,43 @@ def delete_record(model, id):
     flash(f'{model.capitalize()} record deleted successfully', "success")
     return redirect(url_for('view'))
 
+@app.route("/favorites/remove", methods=["POST"])
+@roles_required("admin", "operator")
+def remove_favorite():
+    user_id = session.get("user_id")
+
+    # silent=True para walang "Unsupported Media Type" warning
+    data = request.get_json(silent=True) or request.form
+
+    terminal_id = data.get("terminal_id")
+    route_id = data.get("route_id")
+
+    terminal_id = int(terminal_id) if terminal_id else None
+    route_id = int(route_id) if route_id else None
+
+    fav = Userfavorite.query.filter_by(
+        user_id=user_id,
+        terminal_id=terminal_id,
+        route_id=route_id
+    ).first()
+
+    if not fav:
+        if request.is_json:
+            return jsonify({"error": "Favorite not found"}), 404
+        flash("Favorite not found.", "danger")
+        return redirect(url_for("favorites_page"))
+
+    db.session.delete(fav)
+    db.session.commit()
+
+    if request.is_json:
+        return jsonify({"message": "Removed from favorites"}), 200
+
+    flash("Removed from favorites.", "info")
+    return redirect(url_for("favorites_page"))
+
 @app.route('/edit/<string:model>/<int:id>', methods=['GET', 'POST'])
+@roles_required("admin", "operator")
 def update_record(model, id):
     model_class = MODEL_MAP.get(model)
     form_class = FORM_MAP.get(model)
@@ -390,17 +534,49 @@ def update_record(model, id):
 
     return render_template("add.html", form=form, model=model, action="edit")
 
+@app.route("/favorites/update/<int:favorite_id>", methods=["POST"])
+@roles_required("admin", "operator")
+def update_favorite_label(favorite_id):
+    """Update the label (note) of an existing favorite."""
+    user_id = session.get("user_id")
+    fav = Userfavorite.query.filter_by(
+        favorite_id=favorite_id,
+        user_id=user_id
+    ).first_or_404()
+
+    label = (request.form.get("label") or "").strip()
+    fav.label = label  # ok even if empty string
+    db.session.commit()
+
+    flash("Favorite label updated.", "success")
+    return redirect(url_for("favorites_page"))
+
 @app.route("/admin")
 def admin():
     return render_template("admin.html")
 
+@app.route("/favorites")
+def favorites_page():
+    user_id = session.get("user_id")
+
+    favs = (
+        Userfavorite.query
+        .filter_by(user_id=user_id)
+        .order_by(Userfavorite.date_created.desc())
+        .all()
+    )
+
+    return render_template("favorites.html", favorites=favs)
+
+
 # ---------------- MAP + MAIN TERMINAL PAGES ----------------
-from flask import current_app
+#from flask import current_app
 
 @app.route("/map")
 def map_view():
     main_id = current_app.config.get("MAIN_TERMINAL_ID", MAIN_TERMINAL_ID)
 
+    # all non-main terminals (same as before)
     terminals = (
         Terminal.query
         .filter(Terminal.terminal_id != main_id)
@@ -409,8 +585,27 @@ def map_view():
         .all()
     )
 
-    return render_template("map.html", terminals=terminals, main_terminal_id=main_id)
+    # 🔹 routes that start at MAIN and end at each terminal
+    routes = (
+        Route.query
+        .filter_by(start_terminal_id=main_id)
+        .all()
+    )
 
+    # terminal_id → {route_id, route_name}
+    routes_by_term = {}
+    for r in routes:
+        routes_by_term[r.end_terminal_id] = {
+            "route_id": r.route_id,
+            "route_name": r.route_name
+        }
+
+    return render_template(
+        "map.html",
+        terminals=terminals,
+        main_terminal_id=main_id,
+        routes_by_term=routes_by_term,   # <-- new
+    )
 
 # SEAT SIMULATION PAGE PER TERMINAL
 @app.route("/seat/<int:terminal_id>")
@@ -660,60 +855,31 @@ def api_update_terminal_jeep_passengers(terminal_id, jeepney_id):
 @app.route("/api/main/origin-jeeps")
 def api_main_origin_jeeps():
     """
-    Returns the latest 'Departed' jeep from each ORIGIN terminal
-    that is currently en route to MAIN TERMINAL.
+    List the latest jeep currently traveling TO the MAIN TERMINAL
+    (one per origin terminal).
     """
 
     main_id = current_app.config.get("MAIN_TERMINAL_ID", MAIN_TERMINAL_ID)
 
-
-    # Subquery → find latest departure per terminal    
-    subq = (
-        db.session.query(
-            TerminalJeepneys.terminal_id,
-            func.max(TerminalJeepneys.departure_time).label("max_dep")
-        )
-        .filter(
-            TerminalJeepneys.status == "Departed",
-            TerminalJeepneys.terminal_id != main_id      # ← exclude MAIN
-        )
-        .group_by(TerminalJeepneys.terminal_id)
-        .subquery()
-    )
-    
-    rows = (
-        db.session.query(TerminalJeepneys, Jeepney, Terminal)
-        .join(
-            subq,
-            (TerminalJeepneys.terminal_id == subq.c.terminal_id) &
-            (TerminalJeepneys.departure_time == subq.c.max_dep)
-        )
-        .join(Jeepney, TerminalJeepneys.jeepney_id == Jeepney.jeepney_id)
-        .join(Terminal, TerminalJeepneys.terminal_id == Terminal.terminal_id)
-        .filter(Terminal.terminal_id != main_id)  # extra guard
-        .order_by(TerminalJeepneys.terminal_id.asc())
+    # Get all live trips heading to MAIN
+    trips = (
+        Trip.query
+        .filter_by(status="En Route", destination_terminal_id=main_id)
+        .order_by(Trip.departure_time.desc())
         .all()
     )
 
+    latest = {}
+    for t in trips:
+        if t.origin_terminal_id not in latest:
+            latest[t.origin_terminal_id] = t  # first is the newest
 
     result = []
 
-    for tj, jeep, term in rows:
-
-        # Skip jeeps NOT going to MAIN TERMINAL
-        trip = (
-            Trip.query
-            .filter_by(
-                jeepney_id=jeep.jeepney_id,
-                status="En Route",
-                destination_terminal_id=main_id
-            )
-            .order_by(Trip.departure_time.desc())
-            .first()
-        )
-
-        if not trip:
-            continue  # jeep is not currently heading to MAIN
+    for origin_id, trip in latest.items():
+        jeep = Jeepney.query.get(trip.jeepney_id)
+        term = Terminal.query.get(origin_id)
+        seat = Seat.query.filter_by(trip_id=trip.trip_id).first()
 
         result.append({
             "jeepney_id": jeep.jeepney_id,
@@ -721,7 +887,7 @@ def api_main_origin_jeeps():
             "terminal_id": term.terminal_id,
             "terminal_name": term.terminal_name,
             "capacity": jeep.capacity,
-            "passengers": tj.current_passengers or 0
+            "passengers": seat.occupied_seats if seat else 0
         })
 
     return jsonify(result[:4])
@@ -768,6 +934,39 @@ def api_map_live_trips():
     # print("LIVE TRIPS:", result)
 
     return jsonify(result)
+
+@app.route("/api/favorites", methods=["POST"])
+def api_add_favorite():
+    data = request.get_json() or {}
+
+    user_id = session.get("user_id")    # or from JWT / whatever you use
+    terminal_id = data.get("terminal_id")
+    route_id = data.get("route_id")
+    # optional custom label from frontend
+    raw_label = data.get("label")
+
+    # Fallback label if none provided
+    if not raw_label:
+        # you can customize this any way you like
+        # e.g., include terminal or route info
+        raw_label = f"Favorite route {route_id} @ terminal {terminal_id}"
+
+    fav = Userfavorite(
+        user_id=user_id,
+        terminal_id=terminal_id,
+        route_id=route_id,
+        label=raw_label,          
+    )
+
+    db.session.add(fav)
+    db.session.commit()
+
+    return jsonify({
+        "ok": True,
+        "favorite_id": fav.favorite_id,
+        "label": fav.label,
+    }), 201
+
 
 @app.route("/api/map/completed-trips")
 def api_map_completed_trips():

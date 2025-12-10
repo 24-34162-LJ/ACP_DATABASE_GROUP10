@@ -18,8 +18,6 @@ function goToTerminal(id) {
   if (!id) return;
   window.location.href = "/seat/" + id;
 }
-
-// expose for inline onclick in HTML
 window.goToTerminal = goToTerminal;
 
 
@@ -56,7 +54,7 @@ function showSeatModal(trip) {
 
   seatId.textContent = trip.jeepney_id;
 
-  const cap = Number(trip.capacity) || 22;  // fallback 22 if something is wrong
+  const cap = Number(trip.capacity) || 22;
   const pass = Number(trip.passengers) || 0;
 
   let html = "";
@@ -72,8 +70,6 @@ function closeSeatModal() {
   const bg = document.getElementById("seatModalBg");
   if (bg) bg.style.display = "none";
 }
-
-// make close function globally accessible (for inline onclick)
 window.closeSeatModal = closeSeatModal;
 
 
@@ -147,7 +143,7 @@ function handleTrips(trips) {
       const travelTime = baseTime * multiplier;
 
       road.style.setProperty("--travel-time", `${travelTime / 1000}s`);
-      
+
       const timer = setTimeout(() => {
         fetch("/api/trips/arrive", {
           method: "POST",
@@ -167,6 +163,7 @@ function handleTrips(trips) {
   });
 }
 
+
 /******************************************************
  * BACKEND LIVE TRIPS POLLING
  ******************************************************/
@@ -174,10 +171,71 @@ function refreshTrips() {
   fetch("/api/map/live-trips")
     .then(r => r.json())
     .then(trips => {
-      // console.log("LIVE TRIPS:", trips);
       handleTrips(trips);
     })
     .catch(err => console.error("live-trip error:", err));
+}
+
+
+/******************************************************
+ * FAVORITE BUTTONS (WITH LABEL PROMPT)
+ ******************************************************/
+function setupFavoriteButtons() {
+  const buttons = document.querySelectorAll(".fav-btn");
+  if (!buttons.length) return;
+
+  buttons.forEach(btn => {
+    btn.addEventListener("click", async event => {
+      // prevent click from triggering goToTerminal()
+      event.stopPropagation();
+
+      const terminalId = btn.dataset.terminalId;
+      const name = btn.dataset.terminalName || "this terminal";
+
+      // ask user for optional label
+      const label = window.prompt(
+        `Add a label for ${name} (optional):`,
+        ""
+      );
+      if (label === null) {
+        // user pressed Cancel
+        return;
+      }
+
+      const body = new URLSearchParams();
+      body.append("terminal_id", terminalId);
+      if (label.trim()) {
+        body.append("label", label.trim());
+      }
+
+      try {
+        const resp = await fetch("/favorites/add", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
+          },
+          body: body.toString()
+        });
+
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) {
+          console.error("Favorite error:", data);
+          alert("Error saving favorite.");
+          return;
+        }
+
+        // visually mark as saved
+        btn.classList.add("saved");
+        const textSpan = btn.querySelector(".fav-text");
+        if (textSpan) textSpan.textContent = "Saved";
+
+        console.log("Favorite saved:", data);
+      } catch (err) {
+        console.error("Favorite network error:", err);
+        alert("Network error while saving favorite.");
+      }
+    });
+  });
 }
 
 
@@ -210,6 +268,7 @@ document.addEventListener("DOMContentLoaded", () => {
   console.log("📌 DOMContentLoaded on map.html");
   setupMainTerminalClick();
   initTrafficLights();
+  setupFavoriteButtons();
   refreshTrips();
   setInterval(refreshTrips, 3000);
 

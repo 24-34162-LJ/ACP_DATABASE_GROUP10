@@ -2,12 +2,13 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from sqlalchemy.sql import func
 from sqlalchemy import text
+from flask_login import UserMixin
 
 
 db = SQLAlchemy()
 
 
-class User(db.Model):
+class User(db.Model,  UserMixin):
     __tablename__ = "users"
 
     user_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -144,7 +145,6 @@ class Route(db.Model):
         db.Integer,
         nullable=False
     )
-
     # to relation
 
     start_terminal = db.relationship(
@@ -381,16 +381,16 @@ class Userfavorite(db.Model):
     terminal_id = db.Column(
         db.Integer,
         db.ForeignKey('terminals.terminal_id', ondelete="CASCADE"),
-        nullable=False
+        nullable=True
     )
 
     route_id = db.Column(
         db.Integer,
         db.ForeignKey('routes.route_id', ondelete="CASCADE"),
-        nullable=False
+        nullable=True
     )
 
-    label = db.Column(db.String(100), nullable=False)
+    label = db.Column(db.String(100), nullable=False, default="")
 
     date_created = db.Column(
         db.DateTime,

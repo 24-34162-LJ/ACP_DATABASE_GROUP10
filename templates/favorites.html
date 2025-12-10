@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}My Favorites{% endblock %}
+{% block content %}
+
+<h2>My Favorite Terminals & Routes</h2>
+
+<p>
+  <a href="{{ url_for('map_view') }}">⬅ Back to Map</a>
+</p>
+
+{% if favorites %}
+  <table border="1" cellpadding="6" cellspacing="0">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Details</th>
+        <th>My Label</th>
+        <th>Saved On</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for f in favorites %}
+        <tr>
+          {# ---------- TYPE + NAME + DETAILS ---------- #}
+          {% if f.favorite_route_fk %}
+            {# it’s a route favorite #}
+            <td>Route</td>
+            <td>{{ f.favorite_route_fk.route_name }}</td>
+            <td>
+              From {{ f.favorite_route_fk.start_terminal.terminal_name }}
+              → {{ f.favorite_route_fk.end_terminal.terminal_name }}
+            </td>
+
+          {% elif f.favorite_terminal_fk %}
+            {# it’s a terminal favorite #}
+            <td>Terminal</td>
+            <td>{{ f.favorite_terminal_fk.terminal_name }}</td>
+            <td>{{ f.favorite_terminal_fk.location }}</td>
+
+          {% else %}
+            {# safety fallback if relationships are missing #}
+            <td>Unknown</td>
+            <td>-</td>
+            <td>-</td>
+          {% endif %}
+
+          {# ---------- LABEL (EDITABLE) ---------- #}
+          <td>
+            <form method="post"
+                  action="{{ url_for('update_favorite_label', favorite_id=f.favorite_id) }}">
+              <input type="text"
+                     name="label"
+                     value="{{ f.label or '' }}"
+                     placeholder="Add a note (optional)"
+                     style="width: 160px;">
+              <button type="submit">Save</button>
+            </form>
+          </td>
+
+          {# ---------- DATE CREATED ---------- #}
+          <td>
+            {% if f.date_created %}
+              {{ f.date_created.strftime("%Y-%m-%d %H:%M") }}
+            {% else %}
+              –
+            {% endif %}
+          </td>
+
+          {# ---------- DELETE BUTTON ---------- #}
+          <td>
+            <form method="post"
+                  action="{{ url_for('remove_favorite') }}"
+                  onsubmit="return confirm('Remove this from favorites?');">
+
+              {% if f.terminal_id %}
+                <input type="hidden" name="terminal_id" value="{{ f.terminal_id }}">
+              {% endif %}
+              {% if f.route_id %}
+                <input type="hidden" name="route_id" value="{{ f.route_id }}">
+              {% endif %}
+
+              <button type="submit">Delete</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p>No favorites yet. Go to the map and click ⭐ <b>Save</b> on a terminal or route.</p>
+{% endif %}
+
+{% endblock %}

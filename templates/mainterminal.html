@@ -293,6 +293,67 @@
       border-radius:5px;
       cursor:pointer;
     }
+    /* ===================== ORIGIN TERMINAL JEEP STYLE (Improved) ===================== */
+    .origin-jeep {
+      width: 110px;
+      height: 190px;
+      border-radius: 60px 60px 10px 10px;
+      border: 2px solid #444;
+      background: linear-gradient(#fffde7, #fff6c2);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      cursor: pointer;
+      padding-bottom: 10px;
+      position: relative;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+      transition: 0.2s;
+    }
+
+    .origin-jeep:hover {
+      transform: scale(1.06);
+    }
+
+    .origin-jeep::before {
+      content: "";
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 65px;
+      height: 38px;
+      background:#d7e9ff;
+      border: 2px solid #333;
+      border-radius: 20px;
+    }
+
+    .origin-label {
+      font-size: 11px;
+      font-weight: bold;
+      margin-bottom: 2px;
+      color: #333;
+    }
+
+    .origin-plate {
+      font-size: 12px;
+      font-weight: bold;
+      color: #444;
+    }
+
+    .origin-count {
+      font-size: 12px;
+      margin-top: 2px;
+      color: #333;
+    }
+
+    .origin-from {
+      font-size: 11px;
+      color: #777;
+      margin-top: 2px;
+    }
+
+        
 
   </style>
 </head>
@@ -334,33 +395,8 @@
   <div class="panel1" id="originPanel">
     <h3>Origin Terminals (Loading Jeeps)</h3>
 
-    <div class="jeep-grid">
-      <!-- TOP: back view -->
-      <div class="jeep-vertical jeep-flip" data-index="0">
-        <div class="terminal-label">Terminal 1</div>
-        <div class="jeep-id"></div>
-        <div class="jeep-count"></div>
-      </div>
+    <div class="jeep-grid" id="originGrid"></div>
 
-      <div class="jeep-vertical jeep-flip" data-index="1">
-        <div class="terminal-label">Terminal 2</div>
-        <div class="jeep-id"></div>
-        <div class="jeep-count"></div>
-      </div>
-
-      <!-- BOTTOM: front view -->
-      <div class="jeep-vertical" data-index="2">
-        <div class="terminal-label">Terminal 3</div>
-        <div class="jeep-id"></div>
-        <div class="jeep-count"></div>
-      </div>
-
-      <div class="jeep-vertical" data-index="3">
-        <div class="terminal-label">Terminal 4</div>
-        <div class="jeep-id"></div>
-        <div class="jeep-count"></div>
-      </div>
-    </div>
   </div>
 
 </div>
@@ -382,12 +418,7 @@
   const MAIN_MIN_FILL = 1.0;
 
   // 4 origin displays (blue boxes)
-  let originJeeps = [
-    { id: null, terminalName: "Terminal 1", originTerminalId: null, passengers: 0, capacity: CAPACITY },
-    { id: null, terminalName: "Terminal 2", originTerminalId: null, passengers: 0, capacity: CAPACITY },
-    { id: null, terminalName: "Terminal 3", originTerminalId: null, passengers: 0, capacity: CAPACITY },
-    { id: null, terminalName: "Terminal 4", originTerminalId: null, passengers: 0, capacity: CAPACITY },
-  ];
+  let originJeeps = {};   // dynamic terminal → jeep mapping
 
   // NOW: departedQueue represents REAL queue at MAIN terminal
   let departedQueue = [];
@@ -522,6 +553,33 @@
     });
   }
 
+  function renderOriginJeeps() {
+    const grid = document.getElementById("originGrid");
+    grid.innerHTML = "";
+
+    Object.values(originJeeps).forEach(j => {
+      grid.insertAdjacentHTML("beforeend", `
+        <div class="origin-jeep" data-terminal="${j.terminalId}">
+          <div class="origin-label">${j.terminalName}</div>
+          <div class="origin-plate">${j.plate ? j.plate : "No Plate"}</div>
+          <div class="origin-count">${j.passengers}/${j.capacity} seats</div>
+          <div class="origin-from">From Terminal ${j.terminalId}</div>
+        </div>
+      `);
+    });
+
+    document.querySelectorAll(".origin-jeep").forEach(el => {
+      el.onclick = () => {
+        const tid = el.dataset.terminal;
+        const j = originJeeps[tid];
+        if (!j?.id) return;
+        updateInfo(j);
+        showSeatModal(j);
+      };
+    });
+  }
+
+
   /* ------------------- ARRIVAL LOGIC ------------------- */
 
   function jeepArrivesAtMain(incoming) {
@@ -623,43 +681,28 @@
 
   // Load the 4 "origin jeeps" (summary of latest departed jeeps heading to main)
   function loadOriginJeepsFromDB() {
-    fetch("/api/main/origin-jeeps")
-      .then(r => r.json())
-      .then(data => {
-        // reset origins only
-        originJeeps.forEach(j => {
-          j.id = null;
-          j.passengers = 0;
-          j.capacity = CAPACITY;
-          j.originTerminalId = null;
-        });
+  fetch("/api/main/origin-jeeps")
+    .then(r => r.json())
+    .then(data => {
 
-        data.forEach((row, idx) => {
-          const capacity = row.capacity ?? CAPACITY;
-          const passengers = row.passengers ?? capacity;
+      originJeeps = {}; // reset
 
-          const jeepData = {
-            id: row.jeepney_id,
-            originName: row.terminal_name,
-            originTerminalId: row.terminal_id,
-            passengers,
-            capacity,
-            terminalName: row.terminal_name
-          };
+      data.forEach(row => {
+        originJeeps[row.terminal_id] = {
+          id: row.jeepney_id,
+          terminalId: row.terminal_id,
+          terminalName: row.terminal_name,
+          plate: row.plate_number,
+          passengers: row.passengers,
+          capacity: row.capacity
+        };
+      });
 
-          if (idx < originJeeps.length) {
-            originJeeps[idx].id = jeepData.id;
-            originJeeps[idx].terminalName = jeepData.originName;
-            originJeeps[idx].originTerminalId = jeepData.originTerminalId;
-            originJeeps[idx].passengers = jeepData.passengers;
-            originJeeps[idx].capacity = jeepData.capacity;
-          }
-        });
-
-        renderOriginJeeps();
-      })
-      .catch(err => console.error("Error loading origin jeeps:", err));
+      renderOriginJeeps();
+    })
+    .catch(err => console.error("Origin load error:", err));
   }
+
 
   // NEW: load REAL queue at main from DB
   function loadMainQueueFromDB() {

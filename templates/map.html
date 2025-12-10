@@ -74,6 +74,31 @@
     .terminal-label { font-weight: bold; letter-spacing: 0.5px; }
     .terminal-meta { font-size: 11px; color: #607d8b; margin-top: 2px; }
 
+    /* FAVORITE BUTTON */
+    .fav-btn {
+      margin-top: 6px;
+      padding: 4px 16px;
+      border-radius: 20px;
+      border: none;
+      font-size: 13px;
+      cursor: pointer;
+      background: #eceff1;
+      color: #37474f;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 2px 5px rgba(0,0,0,.25);
+    }
+
+    .fav-btn span.star { color: #ffa000; }
+
+    .fav-btn.saved {
+      background: #a5d6a7;
+      color: #1b5e20;
+    }
+
+    .fav-btn.saved span.star { color: #1b5e20; }
+
     /* MAIN TERMINAL */
     .main-terminal {
       top: 50%;
@@ -197,16 +222,15 @@
 
     /* animations: full road, one direction */
     @keyframes jeep-out {
-      from { left: 0%; }    /* near main terminal side */
-      to   { left: 100%; }  /* near corner terminal side */
+      from { left: 0%; }
+      to   { left: 100%; }
     }
 
     @keyframes jeep-in {
-      from { left: 100%; }  /* from corner terminal side */
-      to   { left: 0%; }    /* to main terminal side */
+      from { left: 100%; }
+      to   { left: 0%; }
     }
 
-    /* tie the animation to a CSS variable for timing */
     .road.trip-out .jeep-dot {
       opacity: 1;
       animation: jeep-out var(--travel-time, 3s) linear forwards;
@@ -230,6 +254,25 @@
       box-shadow: 0 0 4px rgba(0,0,0,0.5);
     }
     .traffic-light.green { background: #00c853; }
+
+    .road-label {
+      position: absolute;
+      top: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255,255,255,0.92);
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      color: #263238;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      white-space: nowrap;
+    }
+
+    .road-label-empty {
+      opacity: 0.7;
+      font-style: italic;
+    }
 
     /* MODAL FOR SEATS */
     .modal-bg {
@@ -281,8 +324,6 @@
       border-radius: 6px;
       cursor: pointer;
     }
-      
-
   </style>
 </head>
 
@@ -290,7 +331,7 @@
 
 <h2>Jeep Terminal Network Map</h2>
 <p class="subtitle">
-  Visual network of the main terminal and connected terminals. Click a terminal to open its page.
+  Visual network of the main terminal and connected terminals. Click a terminal to open its page, or ⭐ Save to add a favorite with your own label.
 </p>
 
 <div class="map-wrapper">
@@ -298,8 +339,18 @@
 
     <!-- ROADS (each road knows which terminal it connects to) -->
     {% for t in terminals[:4] %}
+      {% set route = routes_by_term.get(t.terminal_id) %}
+      {% set rname = route.route_name if route else None %}
+
       <div class="road road-to-{{ loop.index }}"
-           data-terminal-id="{{ t.terminal_id }}">
+          data-terminal-id="{{ t.terminal_id }}">
+          
+        {% if rname %}
+          <div class="road-label">{{ rname }}</div>
+        {% else %}
+          <div class="road-label road-label-empty">No route set</div>
+        {% endif %}
+
         <div class="jeep-dot"></div>
         <div class="traffic-light"></div>
       </div>
@@ -308,16 +359,26 @@
     <!-- joint (center) -->
     <div class="joint"></div>
 
-    <!-- DYNAMIC TERMINALS FROM DATABASE (corners) -->
+    <!-- TERMINAL CARDS -->
     {% set slot_classes = ['terminal-1', 'terminal-2', 'terminal-3', 'terminal-4'] %}
     {% for t in terminals[:4] %}
       <div class="terminal {{ slot_classes[loop.index0] }}"
            onclick="goToTerminal({{ t.terminal_id }})">
+
         <div class="terminal-label">{{ t.terminal_name }}</div>
         <div class="terminal-meta">
           ID: {{ t.terminal_id }}<br>
           {{ t.location }}
         </div>
+
+        <!-- ⭐ Save favorite button with data attributes -->
+        <button type="button"
+                class="fav-btn"
+                data-terminal-id="{{ t.terminal_id }}"
+                data-terminal-name="{{ t.terminal_name }}">
+          <span class="star">⭐</span>
+          <span class="fav-text">Save</span>
+        </button>
       </div>
     {% endfor %}
 
@@ -339,10 +400,7 @@
   </div>
 </div>
 
-<button 
-    onclick="window.location.href='/commuter'" id="close">Home
-</button> 
-
+<button onclick="window.location.href='/commuter'" id="close">Home</button>
 
 <script>
   // Tell JS what MAIN terminal is (comes from Flask)

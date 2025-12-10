@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm # this for security and the secret key
 from wtforms import StringField, PasswordField, SubmitField, SelectField, IntegerField, DateTimeLocalField, BooleanField# for the function each of this have their own action
-from wtforms.validators import DataRequired, Length, Email, EqualTo, Optional # like role to make sure that data is valid
+from wtforms.validators import DataRequired, Length, Email, EqualTo, Optional, NumberRange# like role to make sure that data is valid
 
 """
 - Datarequired() = make sure it have data
@@ -76,6 +76,14 @@ class AddTerminal(FlaskForm):
     location = StringField (
         "terminal location",
         validators=[DataRequired()]
+    )
+    route_name = StringField(
+        "Route Name", 
+        validators=[DataRequired()]
+    )
+    estimated_time_minutes = IntegerField(
+        "Estimated time (minutes)",
+        validators=[Optional(), NumberRange(min=0)]
     )
     status = SelectField(
         "Select status",
