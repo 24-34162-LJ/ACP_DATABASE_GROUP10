@@ -266,10 +266,25 @@
       width: 35px;
       height: 35px;
       border-radius: 4px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position:relative;
+      overflow:visible;
     }
 
-    .filled { background:#4caf50; }
-    .empty  { background:#ccc; }
+    .seat-square > .seat-num {
+      font-size:10px;
+      position:absolute;
+      bottom:2px;
+      right:2px;
+      color:rgba(255,255,255,0.9);
+      font-weight:bold;
+      text-shadow:0 1px 0 rgba(0,0,0,0.3);
+    }
+
+    .filled { background:#4caf50; color:#fff; }
+    .empty  { background:#ccc; color:#222; }
 
     .jeepney-row {
       display:flex;
@@ -402,11 +417,12 @@
 </div>
 
 <!-- MODAL -->
-<div class="modal-bg" id="seatModalBg">
-  <div class="modal">
-    <h3>Seats – Jeep <span id="seatJeepId"></span></h3>
-    <div id="seatLayout"></div>
-    <button class="close-btn" onclick="closeSeatModal()">Close</button>
+<div class="modal-bg" id="seatModalBg" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="seatModalTitle">
+  <div class="modal" id="seatModal">
+    <h3 id="seatModalTitle">Seats – Jeep <span id="seatJeepId"></span></h3>
+    <div id="seatLayout" aria-live="polite"></div>
+    <div id="seatCounts" style="margin-top:8px; font-size:13px;"></div>
+    <button class="close-btn" onclick="closeSeatModal()" aria-label="Close seat modal">Close</button>
   </div>
 </div>
 
@@ -441,53 +457,88 @@
   const seatModalBg = document.getElementById("seatModalBg");
   const seatLayout = document.getElementById("seatLayout");
   const seatJeepId = document.getElementById("seatJeepId");
+  const seatCounts = document.getElementById("seatCounts");
 
-  /* ------------------- MODAL ------------------- */
+  /* ------------------- MODAL / SEAT RENDERING (Improved) ------------------- */
 
-  function seatSq(full) {
-    return `<div class="seat-square ${full ? "filled" : "empty"}"></div>`;
+  // Build a single seat DOM node with seat number and filled state
+  function createSeatNode(index, filled) {
+    const node = document.createElement("div");
+    node.className = `seat-square ${filled ? "filled" : "empty"}`;
+    node.setAttribute("role", "img");
+    node.setAttribute("aria-label", `Seat ${index + 1}: ${filled ? "occupied" : "empty"}`);
+
+    const num = document.createElement("div");
+    num.className = "seat-num";
+    num.textContent = index + 1;
+    node.appendChild(num);
+
+    return node;
   }
 
   function showSeatModal(j) {
-    seatJeepId.textContent = j.id;
+    if (!j) return;
+    const capacity = (j.capacity == null ? CAPACITY : j.capacity);
+    const taken = Math.max(0, Math.min(j.passengers == null ? 0 : j.passengers, capacity));
 
-    const taken = j.passengers;
-    const capacity = j.capacity;
-    let index = 0;
+    seatJeepId.textContent = j.id ?? "–";
+    seatLayout.innerHTML = ""; // clear old content
 
-    let html = `
-      <div class="jeepney-layout">
-        <div class="jeepney-front">
-          <div class="driver-box">Driver</div>
-          <div class="front-seats">
-            ${seatSq(index < taken)}
-            ${seatSq(index + 1 < taken)}
-          </div>
-        </div>
-    `;
+    const layout = document.createElement("div");
+    layout.className = "jeepney-layout";
 
-    index += 2;
-    const rows = Math.ceil((capacity - 2) / 2);
+    // Front: driver + two front seats
+    const front = document.createElement("div");
+    front.className = "jeepney-front";
+    const driver = document.createElement("div");
+    driver.className = "driver-box";
+    driver.textContent = "Driver";
+    front.appendChild(driver);
 
-    for (let i = 0; i < rows; i++) {
-      html += `
-        <div class="jeepney-row">
-          ${seatSq(index < taken)}
-          ${seatSq(index + 1 < taken)}
-        </div>
-      `;
-      index += 2;
+    const frontSeats = document.createElement("div");
+    frontSeats.className = "front-seats";
+    frontSeats.appendChild(createSeatNode(0, 0 < taken));
+    frontSeats.appendChild(createSeatNode(1, 1 < taken));
+    front.appendChild(frontSeats);
+    layout.appendChild(front);
+
+    // Remaining seats (pairs)
+    let index = 2;
+    const remaining = Math.max(0, capacity - 2);
+    const rows = Math.ceil(remaining / 2);
+    for (let r = 0; r < rows; r++) {
+      const row = document.createElement("div");
+      row.className = "jeepney-row";
+      row.appendChild(createSeatNode(index, index < taken));
+      index++;
+      row.appendChild(createSeatNode(index, index < taken));
+      index++;
+      layout.appendChild(row);
     }
 
-    html += `</div>`;
-    seatLayout.innerHTML = html;
+    seatLayout.appendChild(layout);
+
+    // seat counts (text)
+    seatCounts.textContent = `${taken} / ${capacity} passengers`;
+
+    // show modal
     seatModalBg.style.display = "flex";
+    seatModalBg.setAttribute("aria-hidden", "false");
   }
 
   function closeSeatModal() {
     seatModalBg.style.display = "none";
+    seatModalBg.setAttribute("aria-hidden", "true");
   }
-    function clearInfo() {
+
+  // allow Esc to close modal
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeSeatModal();
+  });
+
+  /* ------------------- INFO PANEL ------------------- */
+
+  function clearInfo() {
     infoId.textContent = "–";
     infoLocation.textContent = "–";
     infoCap.textContent = "–";
@@ -496,11 +547,12 @@
   }
 
   function updateInfo(j) {
-    infoId.textContent = j.id;
+    if (!j) return;
+    infoId.textContent = j.id ?? "–";
     infoLocation.textContent = j.terminalName || j.originName || "Main Terminal";
-    infoCap.textContent = j.capacity;
-    infoPass.textContent = j.passengers;
-    infoLeft.textContent = j.capacity - j.passengers;
+    infoCap.textContent = j.capacity ?? CAPACITY;
+    infoPass.textContent = j.passengers ?? 0;
+    infoLeft.textContent = (j.capacity ?? CAPACITY) - (j.passengers ?? 0);
   }
 
   /* ------------------- RENDERING ------------------- */
@@ -527,13 +579,9 @@
       mainJeepLabel.textContent = `Loading (to ${mainJeep.originName})`;
     }
 
-    // 🔴 THIS is the important part:
     // Always sync Jeep Information with the jeep at Main Terminal
     updateInfo(mainJeep);
   }
-
-  // this 
-
 
   function renderQueue() {
     queueCarsEl.innerHTML = "";
@@ -558,27 +606,22 @@
     grid.innerHTML = "";
 
     Object.values(originJeeps).forEach(j => {
-      grid.insertAdjacentHTML("beforeend", `
-        <div class="origin-jeep" data-terminal="${j.terminalId}">
-          <div class="origin-label">${j.terminalName}</div>
-          <div class="origin-plate">${j.plate ? j.plate : "No Plate"}</div>
-          <div class="origin-count">${j.passengers}/${j.capacity} seats</div>
-          <div class="origin-from">From Terminal ${j.terminalId}</div>
-        </div>
-      `);
-    });
-
-    document.querySelectorAll(".origin-jeep").forEach(el => {
+      const el = document.createElement("div");
+      el.className = "origin-jeep";
+      el.dataset.terminal = j.terminalId;
+      el.innerHTML = `
+        <div class="origin-label">${j.terminalName}</div>
+        <div class="origin-plate">${j.plate ? j.plate : "No Plate"}</div>
+        <div class="origin-count">${j.passengers}/${j.capacity} seats</div>
+        <div class="origin-from">From Terminal ${j.terminalId}</div>
+      `;
       el.onclick = () => {
-        const tid = el.dataset.terminal;
-        const j = originJeeps[tid];
-        if (!j?.id) return;
         updateInfo(j);
         showSeatModal(j);
       };
+      grid.appendChild(el);
     });
   }
-
 
   /* ------------------- ARRIVAL LOGIC ------------------- */
 
@@ -605,22 +648,37 @@
     if (!mainJeep) return;
 
     if (mainJeep.phase === "unloading") {
-      mainJeep.passengers -= 2;
-      if (mainJeep.passengers <= 0) {
-        mainJeep.passengers = 0;
+      // remove 1-2 passengers (random for realism)
+      const remove = 1 + Math.floor(Math.random() * 2);
+      mainJeep.passengers = Math.max(0, (mainJeep.passengers || 0) - remove);
+
+      // persist to backend (best-effort)
+      fetch(`/api/terminal/${MAIN_TERMINAL_ID}/jeepneys/${mainJeep.id}/passengers`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ passengers: mainJeep.passengers })
+      }).catch(err => console.error("Failed to update passengers (unload)", err));
+
+      if (mainJeep.passengers === 0) {
         mainJeep.phase = "loading";
       }
+    }
 
-    } else if (mainJeep.phase === "loading") {
-      mainJeep.passengers += 2;
+    else if (mainJeep.phase === "loading") {
+      // add 1-2 passengers
+      const add = 1 + Math.floor(Math.random() * 2);
+      mainJeep.passengers = Math.min(mainJeep.capacity || CAPACITY, (mainJeep.passengers || 0) + add);
 
-      const needed = mainJeep.capacity * MAIN_MIN_FILL;
+      // persist to backend (best-effort)
+      fetch(`/api/terminal/${MAIN_TERMINAL_ID}/jeepneys/${mainJeep.id}/passengers`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ passengers: mainJeep.passengers })
+      }).catch(err => console.error("Failed to update passengers (load)", err));
+
+      const needed = (mainJeep.capacity || CAPACITY) * MAIN_MIN_FILL;
 
       if (mainJeep.passengers >= needed) {
-        if (mainJeep.passengers > mainJeep.capacity) {
-          mainJeep.passengers = mainJeep.capacity;
-        }
-
         // MAIN → ORIGIN departure
         fetch("/api/trips/depart-from-main", {
           method: "POST",
@@ -630,11 +688,8 @@
             passengers: mainJeep.passengers
           })
         })
-
         .then(r => {
-          if (!r.ok) {
-            return r.json().then(x => { throw x; });
-          }
+          if (!r.ok) return r.json().then(x => { throw x; });
           return r.json();
         })
         .then(() => {
@@ -667,7 +722,7 @@
     el.addEventListener("click", () => {
       const idx = parseInt(el.dataset.index, 10);
       const j = originJeeps[idx];
-      if (!j.id) return;
+      if (!j || !j.id) return;
       updateInfo(j);
       showSeatModal(j);
     });
@@ -681,26 +736,26 @@
 
   // Load the 4 "origin jeeps" (summary of latest departed jeeps heading to main)
   function loadOriginJeepsFromDB() {
-  fetch("/api/main/origin-jeeps")
-    .then(r => r.json())
-    .then(data => {
+    fetch("/api/main/origin-jeeps")
+      .then(r => r.json())
+      .then(data => {
 
-      originJeeps = {}; // reset
+        originJeeps = {}; // reset
 
-      data.forEach(row => {
-        originJeeps[row.terminal_id] = {
-          id: row.jeepney_id,
-          terminalId: row.terminal_id,
-          terminalName: row.terminal_name,
-          plate: row.plate_number,
-          passengers: row.passengers,
-          capacity: row.capacity
-        };
-      });
+        data.forEach(row => {
+          originJeeps[row.terminal_id] = {
+            id: row.jeepney_id,
+            terminalId: row.terminal_id,
+            terminalName: row.terminal_name,
+            plate: row.plate_number,
+            passengers: row.passengers ?? 0,
+            capacity: row.capacity ?? CAPACITY
+          };
+        });
 
-      renderOriginJeeps();
-    })
-    .catch(err => console.error("Origin load error:", err));
+        renderOriginJeeps();
+      })
+      .catch(err => console.error("Origin load error:", err));
   }
 
 

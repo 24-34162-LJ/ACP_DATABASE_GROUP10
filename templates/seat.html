@@ -200,208 +200,248 @@
 </div>
 
 <!-- MODAL -->
-<div class="modal-bg" id="seatModalBg">
-  <div class="modal">
-    <h3>Jeep Seats – ID <span id="seatJeepId"></span></h3>
-    <div id="seatLayout"></div>
-    <button class="close-btn" onclick="closeSeatModal()">Close</button>
+<div class="modal-bg" id="seatModalBg" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="seatModalTitle">
+  <div class="modal" id="seatModal">
+    <h3 id="seatModalTitle">Jeep Seats – ID <span id="seatJeepId"></span></h3>
+    <div id="seatLayout" style="max-height:60vh; overflow:auto;"></div>
+    <div style="margin-top:8px; font-size:13px;" id="seatCounts"></div>
+    <button class="close-btn" onclick="closeSeatModal()" aria-label="Close seat modal">Close</button>
   </div>
 </div>
 
 <script>
-  // From Flask: /seat/<terminal_id>
-  const MAIN_TERMINAL_ID = {{ main_terminal_id }};   
-  const TERMINAL_ID = {{ terminal_id }};
-  const CAPACITY_FALLBACK = 22;
-  const TICK_MS = 2000;
+/* ---------- CONFIG ---------- */
+const MAIN_TERMINAL_ID = {{ main_terminal_id }};
+const TERMINAL_ID = {{ terminal_id }};
+const CAPACITY_FALLBACK = 22;
+const TICK_MS = 2000;
+const QUEUE_REFRESH_MS = 8000; // periodic queue refresh
+const MIN_FILL_PERCENT = 1.0;
 
-  // 100% full bago pwedeng umalis (gusto mo 80%? gawin 0.8)
-  const MIN_FILL_PERCENT = 1.0;
+/* ---------- STATE ---------- */
+let queue = [];
+let activeJeep = null;
+let loadingQueue = false;
+let updatingPassengers = false;
 
-  let queue = [];
-  // activeJeep: { id, passengers, capacity, phase: 'unloading' | 'loading' }
-  let activeJeep = null;
+const queueCarsEl = document.getElementById("queueCars");
+const terminalBoxEl = document.getElementById("terminalBox");
+const infoId = document.getElementById("infoId");
+const infoLocation = document.getElementById("infoLocation");
+const infoCap = document.getElementById("infoCap");
+const infoPass = document.getElementById("infoPass");
+const infoLeft = document.getElementById("infoLeft");
+const seatModalBg = document.getElementById("seatModalBg");
+const seatLayout = document.getElementById("seatLayout");
+const seatJeepId = document.getElementById("seatJeepId");
+const seatCounts = document.getElementById("seatCounts");
 
-  const queueCarsEl = document.getElementById("queueCars");
-  const terminalBoxEl = document.getElementById("terminalBox");
+/* ---------- ACCESSIBILITY / KEYBIND ---------- */
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeSeatModal();
+});
 
-  const infoId = document.getElementById("infoId");
-  const infoLocation = document.getElementById("infoLocation");
-  const infoCap = document.getElementById("infoCap");
-  const infoPass = document.getElementById("infoPass");
-  const infoLeft = document.getElementById("infoLeft");
+/* ---------- RENDER A SEAT (returns DOM node) ---------- */
+function renderSeatNode(index, filled) {
+  const div = document.createElement("div");
+  div.className = `seat-square ${filled ? "filled" : "empty"}`;
+  div.setAttribute("role", "img");
+  div.setAttribute("aria-label", `Seat ${index + 1}: ${filled ? "occupied" : "empty"}`);
+  // seat number label (small)
+  const label = document.createElement("div");
+  label.style.fontSize = "10px";
+  label.style.textAlign = "center";
+  label.style.marginTop = "2px";
+  label.textContent = (index + 1);
+  div.appendChild(label);
+  return div;
+}
 
-  const seatModalBg = document.getElementById("seatModalBg");
-  const seatLayout = document.getElementById("seatLayout");
-  const seatJeepId = document.getElementById("seatJeepId");
+/* ---------- SHOW SEAT MODAL (improved) ---------- */
+function showSeatModal(jeep) {
+  if (!jeep) return;
+  seatJeepId.textContent = jeep.id;
+  const seatsTaken = Math.max(0, Math.min(jeep.passengers, jeep.capacity));
+  const totalSeats = jeep.capacity || CAPACITY_FALLBACK;
 
-  /* =============== SEAT MODAL =============== */
-  function renderSquare(filled) {
-    return `<div class="seat-square ${filled ? "filled" : "empty"}"></div>`;
+  // top info
+  seatCounts.textContent = `${seatsTaken}/${totalSeats} passengers`;
+
+  // build layout as DOM for safety
+  seatLayout.innerHTML = ""; // clear
+  const layout = document.createElement("div");
+  layout.className = "jeepney-layout";
+
+  // front driver + front seats
+  const front = document.createElement("div");
+  front.className = "jeepney-front";
+  const driver = document.createElement("div");
+  driver.className = "driver-box";
+  driver.textContent = "Driver";
+  front.appendChild(driver);
+
+  const frontSeats = document.createElement("div");
+  frontSeats.className = "front-seats";
+  // front seat indices 0 & 1
+  for (let i = 0; i < 2; i++) {
+    const filled = i < seatsTaken;
+    frontSeats.appendChild(renderSeatNode(i, filled));
+  }
+  front.appendChild(frontSeats);
+  layout.appendChild(front);
+
+  // remaining seats
+  let seatIndex = 2;
+  const remaining = Math.max(0, totalSeats - 2);
+  const rows = Math.ceil(remaining / 2);
+
+  for (let r = 0; r < rows; r++) {
+    const row = document.createElement("div");
+    row.className = "jeepney-row";
+    // left
+    const leftFilled = seatIndex < seatsTaken;
+    row.appendChild(renderSeatNode(seatIndex, leftFilled));
+    seatIndex++;
+    // right (might exceed totalSeats — we still render placeholder seat with index)
+    const rightFilled = seatIndex < seatsTaken;
+    row.appendChild(renderSeatNode(seatIndex, rightFilled));
+    seatIndex++;
+    layout.appendChild(row);
   }
 
-  function showSeatModal(jeep) {
-    if (!jeep) return;
+  seatLayout.appendChild(layout);
+  seatModalBg.style.display = "flex";
+  seatModalBg.setAttribute("aria-hidden", "false");
+}
 
-    seatJeepId.textContent = jeep.id;
+/* ---------- CLOSE SEAT MODAL ---------- */
+function closeSeatModal() {
+  seatModalBg.style.display = "none";
+  seatModalBg.setAttribute("aria-hidden", "true");
+}
 
-    const seatsTaken = jeep.passengers;
-    const totalSeats = jeep.capacity;
-
-    let seatIndex = 0;
-    let html = `
-      <div class="jeepney-layout">
-        <div class="jeepney-front">
-          <div class="driver-box">Driver</div>
-          <div class="front-seats">
-            ${renderSquare(seatIndex < seatsTaken)}
-            ${renderSquare(seatIndex + 1 < seatsTaken)}
-          </div>
-        </div>
-    `;
-
-    seatIndex += 2;
-    const remaining = totalSeats - 2;
-    const rows = Math.ceil(remaining / 2);
-
-    for (let i = 0; i < rows; i++) {
-      html += `
-        <div class="jeepney-row">
-          ${renderSquare(seatIndex < seatsTaken)}
-          ${renderSquare(seatIndex + 1 < seatsTaken)}
-        </div>
-      `;
-      seatIndex += 2;
-    }
-
-    html += `</div>`;
-    seatLayout.innerHTML = html;
-    seatModalBg.style.display = "flex";
+/* ---------- INFO PANEL ---------- */
+function updateInfo(jeep, location) {
+  if (!jeep) {
+    infoId.textContent = "–";
+    infoLocation.textContent = "–";
+    infoCap.textContent = "–";
+    infoPass.textContent = "–";
+    infoLeft.textContent = "–";
+    return;
   }
+  infoId.textContent = jeep.id;
+  infoLocation.textContent = location;
+  infoCap.textContent = jeep.capacity;
+  infoPass.textContent = jeep.passengers;
+  infoLeft.textContent = jeep.capacity - jeep.passengers;
+}
 
-  function closeSeatModal() {
-    seatModalBg.style.display = "none";
-  }
-
-  /* =============== INFO PANEL =============== */
-  function updateInfo(jeep, location) {
-    if (!jeep) {
-      infoId.textContent = "–";
-      infoLocation.textContent = "–";
-      infoCap.textContent = "–";
-      infoPass.textContent = "–";
-      infoLeft.textContent = "–";
-      return;
-    }
-
-    infoId.textContent = jeep.id;
-    infoLocation.textContent = location;
-    infoCap.textContent = jeep.capacity;
-    infoPass.textContent = jeep.passengers;
-    infoLeft.textContent = jeep.capacity - jeep.passengers;
-  }
-
-  /* =============== TERMINAL (ACTIVE JEEP) RENDERING =============== */
-  function renderTerminal() {
-    if (!activeJeep) {
-      terminalBoxEl.innerHTML = `
-        <div class="jeep-id">EMPTY</div>
-        <div>No jeep loading</div>
-      `;
-      terminalBoxEl.onclick = null;
-      updateInfo(null);
-      return;
-    }
-
-    const modeLabel = (activeJeep.phase === "unloading")
-      ? "Unloading from Main"
-      : "Loading to Main";
-
+/* ---------- RENDER TERMINAL ---------- */
+function renderTerminal() {
+  if (!activeJeep) {
     terminalBoxEl.innerHTML = `
-      <div class="jeep-id">Jeep ${activeJeep.id}</div>
-      <div>${activeJeep.passengers}/${activeJeep.capacity}</div>
-      <div style="font-size:12px;">${modeLabel}</div>
+      <div class="jeep-id">EMPTY</div>
+      <div>No jeep loading</div>
     `;
-
-    terminalBoxEl.onclick = () => {
-      const locLabel = (activeJeep.phase === "unloading")
-        ? "Unloading Zone"
-        : "Loading Zone";
-      updateInfo(activeJeep, locLabel);
-      showSeatModal(activeJeep);
-    };
+    terminalBoxEl.onclick = null;
+    updateInfo(null);
+    return;
   }
 
-  /* =============== QUEUE (REST OF JEEPS) RENDERING =============== */
-  function renderQueue() {
-    queueCarsEl.innerHTML = "";
+  const modeLabel = (activeJeep.phase === "unloading") ? "Unloading from Main" : "Loading to Main";
 
-    queue.forEach(j => {
-      const d = document.createElement("div");
-      d.className = "jeep";
-      d.innerHTML = `
-        <div class="jeep-id">Jeep ${j.id}</div>
-        <div>${j.passengers}/${j.capacity}</div>
-      `;
-      d.onclick = () => {
-        updateInfo(j, "Queue");
-        showSeatModal(j);
-      };
-      queueCarsEl.appendChild(d);
+  terminalBoxEl.innerHTML = `
+    <div class="jeep-id">Jeep ${activeJeep.id}</div>
+    <div>${activeJeep.passengers}/${activeJeep.capacity}</div>
+    <div style="font-size:12px;">${modeLabel}</div>
+  `;
+
+  terminalBoxEl.onclick = () => {
+    const locLabel = (activeJeep.phase === "unloading") ? "Unloading Zone" : "Loading Zone";
+    updateInfo(activeJeep, locLabel);
+    showSeatModal(activeJeep);
+  };
+}
+
+/* ---------- RENDER QUEUE ---------- */
+function renderQueue() {
+  queueCarsEl.innerHTML = "";
+  queue.forEach(j => {
+    const d = document.createElement("div");
+    d.className = "jeep";
+    d.innerHTML = `
+      <div class="jeep-id">Jeep ${j.id}</div>
+      <div>${j.passengers}/${j.capacity}</div>
+    `;
+    d.onclick = () => {
+      updateInfo(j, "Queue");
+      showSeatModal(j);
+    };
+    queueCarsEl.appendChild(d);
+  });
+}
+
+/* ---------- SIMULATION TICK ---------- */
+function tick() {
+  if (!activeJeep) {
+    renderTerminal();
+    renderQueue();
+    return;
+  }
+
+  // guard to avoid overlapping passenger updates
+  if (updatingPassengers) {
+    renderTerminal();
+    renderQueue();
+    return;
+  }
+
+  // UNLOADING
+  if (activeJeep.phase === "unloading") {
+    updatingPassengers = true;
+    const remove = 1 + Math.floor(Math.random() * 2);
+    activeJeep.passengers = Math.max(0, activeJeep.passengers - remove);
+
+    // Update DB (patch)
+    fetch(`/api/terminal/${TERMINAL_ID}/jeepneys/${activeJeep.id}/passengers`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        // If you use CSRF tokens in Flask, include here:
+        // "X-CSRFToken": CSRF_TOKEN
+      },
+      body: JSON.stringify({ passengers: activeJeep.passengers })
+    })
+    .catch(err => console.error("Failed to update passengers (unload)", err))
+    .finally(() => {
+      updatingPassengers = false;
+      updateInfo(activeJeep, "Unloading at Origin");
+      if (activeJeep.passengers === 0) activeJeep.phase = "loading";
+      renderTerminal();
+      renderQueue();
     });
   }
 
-  // ----------------- SIMULATION LOGIC (UNLOAD then LOAD) -----------------
-  function tick() {
-    if (!activeJeep) {
-      renderTerminal();
-      renderQueue();
-      return;
-    }
+  // LOADING
+  else if (activeJeep.phase === "loading") {
+    updatingPassengers = true;
+    const add = 1 + Math.floor(Math.random() * 2);
+    activeJeep.passengers = Math.min(activeJeep.capacity, activeJeep.passengers + add);
 
-    // 1) UNLOADING phase: jeep came from main → drop passengers
-    if (activeJeep.phase === "unloading") {
-      const remove = 1 + Math.floor(Math.random() * 2); // 1–2 bababa
-      activeJeep.passengers -= remove;
-      if (activeJeep.passengers < 0) activeJeep.passengers = 0;
-
-      // update DB
-      fetch(`/api/terminal/${TERMINAL_ID}/jeepneys/${activeJeep.id}/passengers`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ passengers: activeJeep.passengers })
-      }).catch(err => console.error("Failed to update passengers (unload)", err));
-
-      updateInfo(activeJeep, "Unloading at Origin");
-
-      // when empty → switch to LOADING mode (same jeep, same slot)
-      if (activeJeep.passengers === 0) {
-        activeJeep.phase = "loading";
-      }
-    }
-
-    // 2) LOADING phase: origin → main
-    else if (activeJeep.phase === "loading") {
-      const add = 1 + Math.floor(Math.random() * 2); // 1–2 sasakay
-      activeJeep.passengers += add;
-      if (activeJeep.passengers > activeJeep.capacity) {
-        activeJeep.passengers = activeJeep.capacity;
-      }
-
-      // update DB
-      fetch(`/api/terminal/${TERMINAL_ID}/jeepneys/${activeJeep.id}/passengers`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ passengers: activeJeep.passengers })
-      }).catch(err => console.error("Failed to update passengers (load)", err));
-
+    fetch(`/api/terminal/${TERMINAL_ID}/jeepneys/${activeJeep.id}/passengers`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ passengers: activeJeep.passengers })
+    })
+    .then(() => {
       updateInfo(activeJeep, "Loading to Main");
-
       const needed = activeJeep.capacity * MIN_FILL_PERCENT;
-
-      // pag puno na → depart to MAIN_TERMINAL_ID
       if (activeJeep.passengers >= needed) {
-        fetch("/api/trips/depart", {
+        // depart
+        return fetch("/api/trips/depart", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -412,93 +452,73 @@
           })
         })
         .then(r => {
-          if (!r.ok) {
-            return r.json().then(x => { throw x; });
-          }
+          if (!r.ok) return r.json().then(x => { throw x; });
           return r.json();
         })
         .then(data => {
           console.log("Departed trip id:", data.trip_id);
-          // naalis na sa bay → hintayin next jeep sa queue
           activeJeep = null;
+          // reload queue after depart
           loadQueueFromBackend();
         })
         .catch(err => {
           console.error("Error calling /api/trips/depart", err);
         });
       }
-    }
-
-    renderTerminal();
-    renderQueue();
+    })
+    .catch(err => console.error("Failed to update passengers (load)", err))
+    .finally(() => {
+      updatingPassengers = false;
+      renderTerminal();
+      renderQueue();
+    });
   }
+}
 
-  // ----------------- LOAD QUEUE FROM DATABASE -----------------
-  function loadQueueFromBackend() {
-    fetch(`/api/terminal/${TERMINAL_ID}/queue`)
-      .then(r => r.json())
-      .then(data => {
-        // Only pick a new activeJeep if wala pang active
-        if (!activeJeep && data.length > 0) {
-          const first = data[0];
-
-          const firstCapacity =
-            (first.capacity === null || first.capacity === undefined)
-              ? CAPACITY_FALLBACK
-              : first.capacity;
-
-          const firstPassengers =
-            (first.passengers === null || first.passengers === undefined)
-              ? 0
-              : first.passengers;
-
-          // 👉 key logic:
-          // passengers > 0  → assume this jeep just arrived from MAIN → start UNLOADING
-          // passengers == 0 → fresh jeep at origin → start LOADING
-          const phase = firstPassengers > 0 ? "unloading" : "loading";
-
-          activeJeep = {
-            id: first.jeepney_id,
-            passengers: firstPassengers,
-            capacity: firstCapacity,
-            phase: phase
+/* ---------- LOAD QUEUE (with guard) ---------- */
+function loadQueueFromBackend() {
+  if (loadingQueue) return;
+  loadingQueue = true;
+  fetch(`/api/terminal/${TERMINAL_ID}/queue`)
+    .then(r => {
+      if (!r.ok) throw new Error("Failed fetching queue");
+      return r.json();
+    })
+    .then(data => {
+      // choose active if none
+      if (!activeJeep && data.length > 0) {
+        const first = data[0];
+        const capacity = (first.capacity == null) ? CAPACITY_FALLBACK : first.capacity;
+        const passengers = (first.passengers == null) ? 0 : first.passengers;
+        activeJeep = {
+          id: first.jeepney_id,
+          passengers,
+          capacity,
+          phase: passengers > 0 ? "unloading" : "loading"
+        };
+      }
+      const activeId = activeJeep ? activeJeep.id : null;
+      queue = data
+        .filter(j => !activeId || j.jeepney_id !== activeId)
+        .map(j => {
+          return {
+            id: j.jeepney_id,
+            passengers: (j.passengers == null) ? 0 : j.passengers,
+            capacity: (j.capacity == null) ? CAPACITY_FALLBACK : j.capacity
           };
-        }
+        });
 
-        // Rebuild queue EXCLUDING activeJeep (kung meron)
-        const activeId = activeJeep ? activeJeep.id : null;
-        queue = data
-          .filter(j => !activeId || j.jeepney_id !== activeId)
-          .map(j => {
-            const capacity =
-              (j.capacity === null || j.capacity === undefined)
-                ? CAPACITY_FALLBACK
-                : j.capacity;
+      renderTerminal();
+      renderQueue();
+    })
+    .catch(err => console.error("Error loading queue", err))
+    .finally(() => loadingQueue = false);
+}
 
-            const passengers =
-              (j.passengers === null || j.passengers === undefined)
-                ? 0
-                : j.passengers;
-
-            return {
-              id: j.jeepney_id,
-              passengers,
-              capacity
-            };
-          });
-
-        renderTerminal();
-        renderQueue();
-      })
-      .catch(err => {
-        console.error("Error loading queue", err);
-      });
-  }
-
-  // Initial load + start simulation
-  loadQueueFromBackend();
-  setInterval(tick, TICK_MS);  // unload → load → depart loop
-  // ❌ Removed setInterval(loadQueueFromBackend, 10000);
+/* ---------- INIT ---------- */
+loadQueueFromBackend();
+setInterval(tick, TICK_MS);
+setInterval(loadQueueFromBackend, QUEUE_REFRESH_MS); // periodic refresh
 </script>
 
 </body>
