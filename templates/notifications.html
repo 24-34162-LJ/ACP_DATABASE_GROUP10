@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Notifications</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f3f3f3; padding:20px; }
+    .card {
+      background:#fff;
+      max-width:700px;
+      margin:0 auto;
+      padding:20px;
+      border-radius:8px;
+      box-shadow:0 0 6px rgba(0,0,0,.1);
+    }
+    .notif {
+      border-bottom:1px solid #ddd;
+      padding:8px 0;
+    }
+    .notif:last-child { border-bottom:none; }
+    .notif-type {
+      font-size:12px;
+      font-weight:bold;
+      text-transform:uppercase;
+      color:#555;
+    }
+    .notif-msg { margin:2px 0; }
+    .notif-time {
+      font-size:11px;
+      color:#777;
+    }
+    .badge-unread {
+      display:inline-block;
+      background:#e53935;
+      color:#fff;
+      font-size:10px;
+      padding:2px 6px;
+      border-radius:10px;
+      margin-left:6px;
+    }
+    a.btn-back {
+      display:inline-block;
+      margin-bottom:10px;
+      text-decoration:none;
+      background:#3498db;
+      color:#fff;
+      padding:6px 12px;
+      border-radius:4px;
+      font-size:14px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <a href="{{ url_for('commuter') }}" class="btn-back">← Home</a>
+  <h2>My Notifications</h2>
+
+  {% if notifications %}
+  {% for n in notifications %}
+      <div class="notif">
+        <div class="notif-type">
+          {{ n.type_nof }}
+          {% if not n.is_read %}
+            <span class="badge-unread">NEW</span>
+          {% endif %}
+        </div>
+        <div class="notif-msg">{{ n.message }}</div>
+        <div class="notif-time">
+          {{ n.date_sent.strftime("%Y-%m-%d %H:%M:%S") }}
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p>No notifications for your favorite terminals.</p>
+  {% endif %}
+
+</div>
+
+</body>
+</html>

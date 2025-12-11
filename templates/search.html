@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Search Routes & Terminals</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background:#f3f3f3;
+      padding: 30px;
+    }
+
+    .card {
+      max-width: 800px;
+      margin: auto;
+      background: white;
+      padding: 20px 25px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    h2 { margin-top: 0; }
+
+    .input-group {
+      margin-bottom: 18px;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: bold;
+      margin-bottom: 5px;
+      display: block;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      font-size: 14px;
+      border: 1px solid #aaa;
+      border-radius: 5px;
+    }
+
+    .result-section {
+      margin-top: 30px;
+    }
+
+    .result-section h3 {
+      margin-bottom: 6px;
+    }
+
+    ul {
+      background: #fafafa;
+      padding: 12px;
+      border-radius: 6px;
+      border: 1px solid #ddd;
+      list-style: none;
+    }
+
+    li {
+      padding: 8px 0;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    li:last-child { border-bottom: none; }
+
+    .small {
+      font-size: 12px;
+      color: #666;
+    }
+
+    a.back {
+      text-decoration: none;
+      font-size: 13px;
+      color: #1976d2;
+      display: inline-block;
+      margin-bottom: 10px;
+    }
+
+  </style>
+</head>
+<body>
+
+<div class="card">
+
+  <a class="back" href="{{ url_for('commuter') }}">← Back to Home</a>
+
+  <h2>Search Routes & Filter Terminals</h2>
+
+  <!-- ROUTE SEARCH -->
+  <div class="input-group">
+    <label>Search Route</label>
+    <input type="text" id="routeInput" placeholder="e.g. Lipa, Tanauan, Main → Lipa">
+  </div>
+
+  <!-- TERMINAL FILTER -->
+  <div class="input-group">
+    <label>Filter Terminals by Location</label>
+    <input type="text" id="terminalInput" placeholder="e.g. Batangas City, Lipa">
+  </div>
+
+  <!-- ROUTE RESULTS -->
+  <div class="result-section">
+    <h3>Route Results</h3>
+    <ul id="routeResults"><li class="small">Type to search routes…</li></ul>
+  </div>
+
+  <!-- TERMINAL RESULTS -->
+  <div class="result-section">
+    <h3>Terminal Results</h3>
+    <ul id="terminalResults"><li class="small">Type to filter terminals…</li></ul>
+  </div>
+
+</div>
+
+<script>
+  const routeInput = document.getElementById("routeInput");
+  const terminalInput = document.getElementById("terminalInput");
+
+  const routeResults = document.getElementById("routeResults");
+  const terminalResults = document.getElementById("terminalResults");
+
+  /* -------------------- ROUTE SEARCH -------------------- */
+  routeInput.addEventListener("input", () => {
+    const q = routeInput.value.trim();
+
+    if (!q) {
+      routeResults.innerHTML = '<li class="small">Type to search routes…</li>';
+      return;
+    }
+
+    fetch(`/api/search/routes?q=${encodeURIComponent(q)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.length === 0) {
+          routeResults.innerHTML = '<li>No routes found.</li>';
+          return;
+        }
+
+        routeResults.innerHTML = "";
+        data.forEach(r => {
+          routeResults.innerHTML += `
+            <li>
+              <strong>${r.route_name}</strong><br>
+              <span class="small">From: ${r.start_terminal} → To: ${r.end_terminal}</span>
+            </li>
+          `;
+        });
+      });
+  });
+
+  /* -------------------- TERMINAL FILTER -------------------- */
+  terminalInput.addEventListener("input", () => {
+    const loc = terminalInput.value.trim();
+
+    if (!loc) {
+      terminalResults.innerHTML = '<li class="small">Type to filter terminals…</li>';
+      return;
+    }
+
+    fetch(`/api/terminals/filter?location=${encodeURIComponent(loc)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.length === 0) {
+          terminalResults.innerHTML = '<li>No terminals found.</li>';
+          return;
+        }
+
+        terminalResults.innerHTML = "";
+        data.forEach(t => {
+          terminalResults.innerHTML += `
+            <li>
+              <strong>${t.terminal_name}</strong><br>
+              <span class="small">Location: ${t.location}</span><br>
+              <span class="small">ID: ${t.terminal_id}</span>
+            </li>
+          `;
+        });
+      });
+  });
+</script>
+
+</body>
+</html>

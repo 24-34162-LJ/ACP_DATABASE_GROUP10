@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Audit Logs</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f3f3f3; padding:20px; }
+    .card {
+      background:#fff;
+      max-width:1000px;
+      margin:0 auto;
+      padding:20px;
+      border-radius:8px;
+      box-shadow:0 0 8px rgba(0,0,0,.15);
+    }
+    h2 { margin-top:0; }
+    .filters {
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-bottom:15px;
+    }
+    .filters label {
+      font-size:12px;
+      display:block;
+      margin-bottom:3px;
+    }
+    .filters select,
+    .filters input[type="date"] {
+      padding:4px 6px;
+      font-size:13px;
+    }
+    .filters button {
+      padding:6px 12px;
+      font-size:13px;
+      margin-top:18px;
+      cursor:pointer;
+    }
+    table {
+      width:100%;
+      border-collapse:collapse;
+      font-size:13px;
+    }
+    th, td {
+      border-bottom:1px solid #ddd;
+      padding:6px 8px;
+      text-align:left;
+    }
+    th {
+      background:#eceff1;
+    }
+    tr:nth-child(even) td {
+      background:#fafafa;
+    }
+    .tag {
+      display:inline-block;
+      padding:2px 8px;
+      border-radius:999px;
+      font-size:11px;
+      color:#fff;
+    }
+    .tag-INSERT { background:#43a047; }
+    .tag-UPDATE { background:#fb8c00; }
+    .tag-DELETE { background:#e53935; }
+
+    .back-link {
+      display:inline-block;
+      margin-bottom:10px;
+      text-decoration:none;
+      color:#1976d2;
+      font-size:14px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <a href="{{ url_for('admin') }}" class="back-link">← Back to Admin</a>
+  <h2>Audit Logs</h2>
+
+  <form method="get" class="filters">
+    <div>
+      <label for="user_id">User</label>
+      <select name="user_id" id="user_id">
+        <option value="">All</option>
+        {% for u in users %}
+          <option value="{{ u.user_id }}"
+            {% if filters.user_id == u.user_id %}selected{% endif %}>
+            {{ u.first_name }} {{ u.last_name }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label for="table_name">Table</label>
+      <select name="table_name" id="table_name">
+        <option value="">All</option>
+        {% for t in table_names %}
+          <option value="{{ t }}"
+            {% if filters.table_name == t %}selected{% endif %}>
+            {{ t }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label for="action">Action</label>
+      <select name="action" id="action">
+        <option value="">All</option>
+        {% for a in actions %}
+          <option value="{{ a }}"
+            {% if filters.action == a %}selected{% endif %}>
+            {{ a }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label for="date_from">From</label>
+      <input type="date" name="date_from" id="date_from"
+             value="{{ filters.date_from or '' }}">
+    </div>
+
+    <div>
+      <label for="date_to">To</label>
+      <input type="date" name="date_to" id="date_to"
+             value="{{ filters.date_to or '' }}">
+    </div>
+
+    <div>
+      <button type="submit">Filter</button>
+    </div>
+  </form>
+
+  {% if logs %}
+    <table>
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>User</th>
+          <th>Action</th>
+          <th>Table</th>
+          <th>Record ID</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+          <tr>
+            <td>{{ log.timestamp.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+            <td>{{ log.audit_user_fk.first_name }} {{ log.audit_user_fk.last_name }}</td>
+            <td>
+              <span class="tag tag-{{ log.action }}">
+                {{ log.action }}
+              </span>
+            </td>
+            <td>{{ log.table_name }}</td>
+            <td>{{ log.record_id }}</td>
+            <td>{{ log.description or "" }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No audit logs found for the selected filters.</p>
+  {% endif %}
+</div>
+
+</body>
+</html>

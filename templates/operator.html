@@ -1,28 +1,374 @@
-<!-- templates/operator.html -->
 {% extends "base.html" %}
 {% block title %}Operator Dashboard{% endblock %}
 
 {% block content %}
-<h1>Operator Dashboard</h1>
-<p>Select a terminal to manage jeepneys:</p>
 
-<ul>
-  <li><a href="{{ url_for('Add') }}">add terminal</a></li>
+<style>
+  .op-container {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .op-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 15px;
+  }
+  .op-top h1 {
+    margin: 0;
+  }
+  .op-select label {
+    font-weight: bold;
+    font-size: 14px;
+    margin-right: 6px;
+  }
+  .op-select select {
+    padding: 4px 8px;
+    font-size: 14px;
+  }
+  .op-link {
+    font-size: 13px;
+    margin-left: 6px;
+  }
 
-  {% for t in terminals %}
-    <li>
-      {% if t.terminal_id == main_terminal_id %}
-        <!-- 🔹 MAIN TERMINAL: go to mainterminal.html instead -->
-        {{ t.terminal_name }} (ID: {{ t.terminal_id }}) –
-        <a href="{{ url_for('mainterminal') }}">Open Main Terminal Screen</a>
-      {% else %}
-        <!-- 🔹 OTHER TERMINALS: normal operator seat page -->
-        {{ t.terminal_name }} (ID: {{ t.terminal_id }}) –
-        <a href="{{ url_for('operator_seat', terminal_id=t.terminal_id) }}">
-          Manage Jeeps
-        </a>
-      {% endif %}
-    </li>
-  {% endfor %}
-</ul>
+  .op-card {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 0 6px rgba(0,0,0,.15);
+    padding: 15px 18px;
+    margin-top: 15px;
+  }
+  .op-card h2 {
+    margin-top: 0;
+    font-size: 18px;
+  }
+
+  .inline-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: flex-end;
+  }
+
+  .inline-form label {
+    font-size: 13px;
+    display: block;
+    margin-bottom: 3px;
+  }
+
+  .inline-form input[type="text"],
+  .inline-form input[type="number"] {
+    padding: 6px 8px;
+    font-size: 13px;
+  }
+
+  .btn {
+    padding: 6px 10px;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .btn-primary { background: #3498db; color: #fff; }
+  .btn-warning { background: #f1c40f; color: #000; }
+  .btn-small { padding: 4px 8px; font-size: 12px; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    margin-top: 8px;
+  }
+  th, td {
+    border-bottom: 1px solid #ddd;
+    padding: 6px 8px;
+    text-align: left;
+  }
+  th {
+    background: #eceff1;
+  }
+
+  .status-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    color: #fff;
+    background: #3498db;
+  }
+
+  .small-note {
+    font-size: 12px;
+    color: #777;
+    margin-top: 4px;
+  }
+</style>
+
+<div class="op-container">
+
+  <div class="op-top">
+    <div>
+      <h1>Operator Dashboard</h1>
+      <p style="margin:4px 0 0;">Manage jeepney entries, departures, and seats.</p>
+    </div>
+
+    <div class="op-select">
+      <label for="terminalSelect">Terminal:</label>
+      <select id="terminalSelect">
+        {% for t in terminals %}
+          <option value="{{ t.terminal_id }}">
+            {{ t.terminal_name }} (ID {{ t.terminal_id }})
+          </option>
+        {% endfor %}
+      </select>
+      <!-- Link to open the "seat" simulation for selected terminal -->
+      <a href="#" id="seatLink" class="op-link">Open Seat Simulation</a>
+      <!-- Link to main terminal screen -->
+      <a href="{{ url_for('mainterminal') }}" class="op-link">Open Main Terminal Screen</a>
+      <!-- Add terminal link -->
+      <a href="{{ url_for('Add') }}" class="op-link">+ Add Terminal</a>
+    </div>
+  </div>
+
+  <!-- ADD JEEP PANEL -->
+  <div class="op-card">
+    <h2>Add Jeepney to Selected Terminal</h2>
+    <form class="inline-form" onsubmit="return false;">
+      <div>
+        <label>Plate Number</label>
+        <input type="text" id="plateInput" placeholder="e.g. ABC 1234">
+      </div>
+      <div>
+        <label>Capacity</label>
+        <input type="number" id="capacityInput" value="22" min="1">
+      </div>
+      <div>
+        <button class="btn btn-primary" onclick="addJeep()">Add Jeep</button>
+      </div>
+    </form>
+    <p class="small-note">
+      This will create a new jeepney and place it in the queue of the selected terminal.
+    </p>
+  </div>
+
+  <!-- QUEUE PANEL -->
+  <div class="op-card">
+    <h2>Current Queue at Terminal</h2>
+    <p class="small-note">
+      Update passenger count and depart jeeps to the Main Terminal.
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Jeep ID</th>
+          <th>Plate</th>
+          <th>Capacity</th>
+          <th>Passengers</th>
+          <th>Seats Left</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="queueBody">
+        <tr><td colspan="7">Select a terminal to load queue...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+  const MAIN_TERMINAL_ID = {{ main_terminal_id }};
+  const terminalSelect = document.getElementById("terminalSelect");
+  const queueBody = document.getElementById("queueBody");
+  const plateInput = document.getElementById("plateInput");
+  const capacityInput = document.getElementById("capacityInput");
+  const seatLink = document.getElementById("seatLink");
+
+  // keep seat simulation link synced with selected terminal
+  function updateSeatLink() {
+    const terminalId = terminalSelect.value;
+    seatLink.href = "{{ url_for('operator_seat', terminal_id=0) }}".replace("0", terminalId);
+  }
+
+  /* ---------- LOAD QUEUE FOR SELECTED TERMINAL ---------- */
+  function loadQueue() {
+    const terminalId = terminalSelect.value;
+    updateSeatLink();
+
+    if (!terminalId) {
+      queueBody.innerHTML = '<tr><td colspan="7">No terminal selected.</td></tr>';
+      return;
+    }
+
+    queueBody.innerHTML = '<tr><td colspan="7">Loading queue...</td></tr>';
+
+    fetch(`/api/terminal/${terminalId}/queue`)
+      .then(res => res.json())
+      .then(data => {
+        if (!data.length) {
+          queueBody.innerHTML = '<tr><td colspan="7">No jeeps in queue.</td></tr>';
+          return;
+        }
+
+        queueBody.innerHTML = "";
+        data.forEach(j => {
+          const cap = j.capacity ?? 22;
+          const pass = j.passengers ?? 0;
+          const left = cap - pass;
+
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${j.jeepney_id}</td>
+            <td>${j.plate_number}</td>
+            <td>${cap}</td>
+            <td>
+              <input type="number"
+                     min="0"
+                     max="${cap}"
+                     value="${pass}"
+                     style="width:60px;"
+                     data-jeep="${j.jeepney_id}"
+                     class="pass-input">
+            </td>
+            <td>${left}</td>
+            <td><span class="status-badge">Waiting / Boarding</span></td>
+            <td>
+              <button class="btn btn-warning btn-small"
+                      onclick="updatePassengers(${j.jeepney_id}, ${cap})">
+                Update Seats
+              </button>
+              <button class="btn btn-primary btn-small"
+                      onclick="departJeep(${j.jeepney_id}, ${cap})">
+                Depart → Main
+              </button>
+            </td>
+          `;
+          queueBody.appendChild(tr);
+        });
+      })
+      .catch(err => {
+        console.error("Error loading queue:", err);
+        queueBody.innerHTML = '<tr><td colspan="7">Error loading queue.</td></tr>';
+      });
+  }
+
+  /* ---------- ADD NEW JEEP TO TERMINAL ---------- */
+  function addJeep() {
+    const plate = plateInput.value.trim();
+    const cap = parseInt(capacityInput.value, 10) || 22;
+    const terminalId = terminalSelect.value;
+
+    if (!plate) {
+      alert("Please enter a plate number.");
+      return;
+    }
+
+    fetch(`/api/terminal/${terminalId}/jeepneys`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        plate_number: plate,
+        capacity: cap
+      })
+    })
+    .then(res => {
+      if (!res.ok) {
+        return res.json().then(x => { throw x; });
+      }
+      return res.json();
+    })
+    .then(data => {
+      alert(`Jeepney ${data.plate_number} added to terminal ${terminalId}.`);
+      plateInput.value = "";
+      capacityInput.value = 22;
+      loadQueue();
+    })
+    .catch(err => {
+      console.error("Error adding jeep:", err);
+      alert("Failed to add jeep.");
+    });
+  }
+
+  /* ---------- UPDATE PASSENGERS (SEAT STATUS) ---------- */
+  function updatePassengers(jeepId, cap) {
+    const terminalId = terminalSelect.value;
+    const input = document.querySelector(`input.pass-input[data-jeep="${jeepId}"]`);
+    if (!input) return;
+
+    let value = parseInt(input.value, 10) || 0;
+    if (value < 0) value = 0;
+    if (value > cap) value = cap;
+    input.value = value;
+
+    fetch(`/api/terminal/${terminalId}/jeepneys/${jeepId}/passengers`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ passengers: value })
+    })
+    .then(res => {
+      if (!res.ok) {
+        return res.json().then(x => { throw x; });
+      }
+      return res.json();
+    })
+    .then(data => {
+      loadQueue(); // refresh seats left
+    })
+    .catch(err => {
+      console.error("Error updating passengers:", err);
+      alert("Failed to update seat status.");
+    });
+  }
+
+  /* ---------- DEPART JEEP TO MAIN TERMINAL ---------- */
+  function departJeep(jeepId, cap) {
+    const terminalId = parseInt(terminalSelect.value, 10);
+    const input = document.querySelector(`input.pass-input[data-jeep="${jeepId}"]`);
+    if (!input) return;
+
+    let passengers = parseInt(input.value, 10) || 0;
+    if (passengers < 0) passengers = 0;
+    if (passengers > cap) passengers = cap;
+
+    if (!confirm(`Depart Jeep ${jeepId} from Terminal ${terminalId} to Main with ${passengers} passengers?`)) {
+      return;
+    }
+
+    fetch("/api/trips/depart", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jeepney_id: jeepId,
+        origin_terminal_id: terminalId,
+        destination_terminal_id: MAIN_TERMINAL_ID,
+        passengers: passengers
+      })
+    })
+    .then(res => {
+      if (!res.ok) {
+        return res.json().then(x => { throw x; });
+      }
+      return res.json();
+    })
+    .then(data => {
+      console.log("Trip departed, trip_id:", data.trip_id);
+      alert(`Jeep ${jeepId} departed to Main Terminal.`);
+      loadQueue();
+    })
+    .catch(err => {
+      console.error("Error departing jeep:", err);
+      alert("Failed to depart jeep.");
+    });
+  }
+
+  // Initial
+  terminalSelect.addEventListener("change", loadQueue);
+  updateSeatLink();
+  loadQueue();
+</script>
+
 {% endblock %}
