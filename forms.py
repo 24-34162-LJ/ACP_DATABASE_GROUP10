@@ -97,54 +97,32 @@ class AddTerminal(FlaskForm):
 # -----------------UPDATE FIELD -----------------
 
 # ---------- USER ----------
-
 class UserForm(FlaskForm):
-    first_name = StringField(
-        "First Name", 
-        validators=[DataRequired()]
-    )
-    last_name = StringField(
-        "Last Name", 
-        validators=[DataRequired()]
-    )
-    
-    email = StringField(
-        "Email",
-        validators=[DataRequired(), Email()]
-    )
-    
-    password = PasswordField (
+    first_name = StringField("First Name", validators=[DataRequired()])
+    last_name = StringField("Last Name", validators=[DataRequired()])
+    email = StringField("Email", validators=[DataRequired(), Email()])
+
+    # Make password OPTIONAL (so edit pages can leave blank).
+    # But when provided, we require min length and matching confirm.
+    password = PasswordField(
         "Password",
-        validators=[DataRequired(), Length(min=6)]
-    )# to get the password
+        validators=[Optional(), Length(min=6, message="Password must be at least 6 characters")]
+    )
 
-    confirm_password = PasswordField (
+    confirm_password = PasswordField(
         "Confirm Password",
-        validators=[DataRequired(), EqualTo('password')]
-    )# to make sure the password is same
-
+        validators=[Optional(), EqualTo('password', message="Passwords must match")]
+    )
 
     role = SelectField(
         "Role",
-        choices=[
-            ("player", "player"),
-            ("operator", "operator"),
-            ("viewer", "viewer"),
-            ("admin", "admin"),
-        ],
+        choices=[("player", "player"), ("operator", "operator"), ("viewer", "viewer"), ("admin", "admin")],
         validators=[DataRequired()],
     )
 
-    level = IntegerField(
-        "Level", 
-        validators=[DataRequired()]
-    )
-    xp_points = IntegerField(
-        "XP Points", 
-        validators=[DataRequired()]
-    )
+    level = IntegerField("Level", validators=[DataRequired()])
+    xp_points = IntegerField("XP Points", validators=[DataRequired()])
     submit = SubmitField("Save User")
-    
 # ---------- TERMINAL ----------
 
 class TerminalForm(FlaskForm):

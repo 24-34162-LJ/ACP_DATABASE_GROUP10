@@ -26,7 +26,7 @@ MAIN_TERMINAL_ID = 1
 app = Flask(__name__, instance_relative_config=True)
 os.makedirs(app.instance_path, exist_ok=True)
 
-db_path = os.path.join(app.instance_path, 'man.db')
+db_path = os.path.join(app.instance_path, 'man2.db')
 
 app.config['SECRET_KEY'] = 'lj123'
 app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{db_path.replace('\\','/')}"
@@ -444,7 +444,6 @@ def Add():
 
     return render_template("terminal.html", form=form)
 
-
 @app.route("/add/<model>", methods=["GET", "POST"])
 def add_record(model):
     model = model.lower()
@@ -466,6 +465,46 @@ def add_record(model):
 
     if form.validate_on_submit():
         try:
+            # ------------------ SPECIAL CASE: USERS (CREATE) ------------------
+            if model == "users":
+                # When creating a new user, require a password and hash it.
+                pw = (form.password.data or "").strip()
+                if not pw:
+                    form.password.errors.append("Password is required for new users.")
+                    return render_template("add.html", form=form, model=model, action="add")
+
+                # check email uniqueness
+                email_val = (form.email.data or "").strip().lower()
+                if User.query.filter_by(email=email_val).first():
+                    form.email.errors.append("Email already registered.")
+                    return render_template("add.html", form=form, model=model, action="add")
+
+                hashed_pw = generate_password_hash(pw)
+
+                user = User(
+                    first_name=form.first_name.data.strip(),
+                    last_name=form.last_name.data.strip(),
+                    email=email_val,
+                    password_hash=hashed_pw,
+                    role=form.role.data,
+                    level=form.level.data,
+                    xp_points=form.xp_points.data
+                )
+
+                db.session.add(user)
+                db.session.flush()
+
+                create_audit_log(
+                    action="INSERT",
+                    table_name="users",
+                    record_id=user.user_id,
+                    description=f"Added user {user.email}"
+                )
+
+                db.session.commit()
+                flash("User added successfully!", "success")
+                return redirect(url_for("view"))
+
             # ------------------ SPECIAL CASE: JEEPNEYS ------------------
             if model == "jeepneys":
                 item = Jeepney(
@@ -875,6 +914,23 @@ def notifications_page():
         notifications=notifications,
         fav_terminal_ids=fav_terminal_ids
     )
+    
+@app.route("/notifications/read/<int:notif_id>", methods=["POST"])
+def mark_notification_read(notif_id):
+    notif = Notification.query.get_or_404(notif_id)
+    notif.is_read = True
+    db.session.commit()
+    return redirect(url_for("notifications_page"))
+
+
+
+@app.route("/notifications/delete/<int:notif_id>", methods=["POST"])
+def delete_notification(notif_id):
+    notif = Notification.query.get_or_404(notif_id)
+    db.session.delete(notif)
+    db.session.commit()
+    return redirect(url_for("notifications_page"))
+
 
 @app.route("/auditlogs")   # only admin can view logs
 def auditlogs_page():
@@ -927,23 +983,21 @@ def auditlogs_page():
 def map_view():
     main_id = current_app.config.get("MAIN_TERMINAL_ID", MAIN_TERMINAL_ID)
 
-    # all non-main terminals (same as before)
+    # all non-main terminals (render up to 20)
     terminals = (
         Terminal.query
         .filter(Terminal.terminal_id != main_id)
         .order_by(Terminal.terminal_id.asc())
-        .limit(4)
+        .limit(20)
         .all()
     )
 
-    # 🔹 routes that start at MAIN and end at each terminal
     routes = (
         Route.query
         .filter_by(start_terminal_id=main_id)
         .all()
     )
 
-    # terminal_id → {route_id, route_name}
     routes_by_term = {}
     for r in routes:
         routes_by_term[r.end_terminal_id] = {
@@ -955,7 +1009,7 @@ def map_view():
         "map.html",
         terminals=terminals,
         main_terminal_id=main_id,
-        routes_by_term=routes_by_term,   # <-- new
+        routes_by_term=routes_by_term,
     )
 
 # SEAT SIMULATION PAGE PER TERMINAL
@@ -1246,7 +1300,8 @@ def api_main_origin_jeeps():
             "passengers": seat.occupied_seats if seat else 0
         })
 
-    return jsonify(result[:4])
+    return jsonify(result)
+
 
 # ---------------- API: LIVE TRIPS FOR MAP ANIMATION ----------------
 # ---------------- API: LIVE TRIPS FOR MAP ANIMATION ----------------
@@ -1515,7 +1570,64 @@ def api_filter_terminals():
         }
         for t in terminals
     ])
+    
+from sqlalchemy.exc import SQLAlchemyError
 
+# --- small helper for JSON error responses (optional but convenient) ---
+def json_error(message, status=400):
+    return jsonify({"error": message}), status
+
+# ---------------- API: DELETE JEEP FROM TERMINAL QUEUE ----------------
+@app.route("/api/terminal/<int:terminal_id>/jeepneys/<int:jeepney_id>", methods=["DELETE"])
+def api_delete_terminal_jeep(terminal_id, jeepney_id):
+    """
+    Delete a jeep from the terminal queue (TerminalJeepneys row) OR delete the Jeepney record.
+    Behavior:
+      - Try to delete the TerminalJeepneys latest row for that terminal+jeep.
+      - If none found, try to delete the Jeepney record itself.
+    """
+    try:
+        # find latest queue row for this terminal+jeep
+        tj = (
+            TerminalJeepneys.query
+            .filter_by(terminal_id=terminal_id, jeepney_id=jeepney_id)
+            .order_by(TerminalJeepneys.arrival_time.desc())
+            .first()
+        )
+
+        if tj:
+            # delete the queue row (remove from this terminal's queue)
+            db.session.delete(tj)
+            create_audit_log(
+                action="DELETE",
+                table_name="terminaljeeps",
+                record_id=getattr(tj, "terminal_jeep_id", None),
+                description=f"Deleted TerminalJeep row for jeep {jeepney_id} at terminal {terminal_id}.",
+                user_id=session.get("user_id")
+            )
+            db.session.commit()
+            return jsonify({"message": "Queue entry removed"}), 200
+
+        # if no TerminalJeepneys row, try delete Jeepney record (dangerous)
+        jeep = Jeepney.query.get(jeepney_id)
+        if not jeep:
+            return json_error("Jeep not found", 404)
+
+        db.session.delete(jeep)
+        create_audit_log(
+            action="DELETE",
+            table_name="jeepneys",
+            record_id=getattr(jeep, "jeepney_id", None),
+            description=f"Deleted Jeepney {jeepney_id}.",
+            user_id=session.get("user_id")
+        )
+        db.session.commit()
+        return jsonify({"message": "Jeep deleted"}), 200
+
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        current_app.logger.exception("Failed to delete jeep/queue row")
+        return json_error("Failed to delete jeep/queue entry", 500)
 
 # ---------------- MAIN ----------------
 if __name__ == "__main__":

@@ -1,411 +1,166 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Jeep Terminal Network Map</title>
-
   <style>
-    :root {
-      --road-color: #555555;
-      --road-line: #ffffff;
-      --grass: #c8e6c9;
-      --border-dark: #263238;
-      --card-bg: #ffffff;
-      --main-bg: #ffe082;
-      --shadow-soft: 0 6px 14px rgba(0,0,0,0.25);
+    :root{
+      --road-color:#555;
+      --road-line:#fff;
+      --grass:#c8e6c9;
+      --border-dark:#263238;
+      --card-bg:#fff;
+      --main-bg:#ffe082;
+    }
+    *{box-sizing:border-box}
+    body{font-family:Arial, sans-serif; background: #e0f7fa; margin:0; padding:20px; color:#263238}
+    h2{margin:0 0 6px}
+    .controls { display:flex; gap:12px; align-items:center; margin-bottom:10px; flex-wrap:wrap }
+    .map-wrapper { display:flex; justify-content:center; }
+    /* BIGGER, RESPONSIVE MAP VIEWPORT */
+    .map-viewport {
+      width: 90vw;
+      max-width: 1400px;
+      height: 70vh;
+      max-height: 900px;
+      border-radius:18px;
+      background:radial-gradient(circle at top, #e8f5f1,#d0efe3);
+      overflow:visible; /* allow terminals to sit outside edge if needed */
+      border:2px solid rgba(0,0,0,0.08);
+      position:relative;
+      margin: 0 auto;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.08);
     }
 
-    * { box-sizing: border-box; }
-
-    body {
-      font-family: Arial, sans-serif;
-      background: radial-gradient(circle at top, #e0f7fa, #b2dfdb);
-      margin: 0;
-      padding: 24px;
-      color: #263238;
-    }
-
-    h2 { margin: 0 0 4px; }
-
-    .subtitle {
-      font-size: 13px;
-      color: #455a64;
-      margin-bottom: 12px;
-    }
-
-    .map-wrapper {
-      display: flex;
-      justify-content: center;
-      margin-top: 10px;
-    }
-
-    .map {
-      position: relative;
-      width: 980px;
-      height: 560px;
+    /* inner container to be transformed for pan/zoom */
+    .map-inner {
+      position:absolute; left:0; top:0; width:100%; height:100%;
+      transform-origin: 50% 50%;
+      transition: transform 0.12s linear;
       background: var(--grass);
-      border-radius: 22px;
-      box-shadow: var(--shadow-soft);
-      overflow: hidden;
-      border: 2px solid rgba(0,0,0,0.15);
-    }
-
-    /* TERMINAL CARDS */
-    .terminal,
-    .main-terminal {
-      position: absolute;
-      background: var(--card-bg);
       border-radius: 14px;
-      border: 2px solid var(--border-dark);
-      padding: 8px 20px;
-      font-size: 15px;
-      text-align: center;
-      box-shadow: 0 3px 9px rgba(0,0,0,.25);
-      z-index: 4;
-      cursor: pointer;
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      pointer-events: auto; /* ensure children are clickable */
     }
 
-    .terminal:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 7px 16px rgba(0,0,0,.35);
-    }
-
-    .terminal-label { font-weight: bold; letter-spacing: 0.5px; }
-    .terminal-meta { font-size: 11px; color: #607d8b; margin-top: 2px; }
-
-    /* FAVORITE BUTTON */
-    .fav-btn {
-      margin-top: 6px;
-      padding: 4px 16px;
-      border-radius: 20px;
-      border: none;
-      font-size: 13px;
-      cursor: pointer;
-      background: #eceff1;
-      color: #37474f;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      box-shadow: 0 2px 5px rgba(0,0,0,.25);
-    }
-
-    .fav-btn span.star { color: #ffa000; }
-
-    .fav-btn.saved {
-      background: #a5d6a7;
-      color: #1b5e20;
-    }
-
-    .fav-btn.saved span.star { color: #1b5e20; }
-
-    /* MAIN TERMINAL */
+    /* main terminal (bigger for larger map) */
     .main-terminal {
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: var(--main-bg);
-      padding: 12px 28px;
-      border-radius: 18px;
-      font-weight: bold;
-      font-size: 16px;
-      letter-spacing: 0.6px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      cursor: pointer;
-      z-index: 999;
-      user-select: none;
+      position:absolute; left:50%; top:50%;
+      transform: translate(-50%,-50%);
+      background:var(--main-bg); padding:12px 26px; border-radius:20px;
+      border:2px solid var(--border-dark); font-weight:bold; z-index:99999;
+      cursor:pointer; display:flex; gap:8px; align-items:center;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.18);
+      font-size:16px;
+      pointer-events: auto;
     }
 
-    .main-terminal:hover {
-      transform: translate(-50%, -50%) scale(1.05);
-      box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+    /* dynamic terminal card */
+    .dynamic-terminal {
+      position:absolute; transform: translate(-50%,-50%);
+      min-width:130px; max-width:200px; padding:10px 12px;
+      background:var(--card-bg); border-radius:12px;
+      border:2px solid rgba(0,0,0,0.12); box-shadow:0 8px 18px rgba(0,0,0,0.12);
+      text-align:center; font-size:14px; z-index:600; cursor:pointer;
+      transition: transform .12s ease, box-shadow .12s ease, left .05s linear, top .05s linear;
+    }
+    .dynamic-terminal.small { min-width:110px; padding:8px 10px; font-size:13px }
+    .dynamic-terminal .terminal-meta{ font-size:11px; color:#607d8b; margin-top:6px }
+
+    /* road (wider for bigger map) */
+    .dynamic-road { position:absolute; height:36px; background:var(--road-color); border-radius:24px; z-index:300; transform-origin:center center; box-shadow:0 0 8px rgba(0,0,0,0.35) inset }
+    .dynamic-road::after {
+      content:""; position:absolute; left:4%; right:4%; top:50%; transform:translateY(-50%); height:6px;
+      background-image: linear-gradient(to right, var(--road-line) 0, var(--road-line) 48px, transparent 48px, transparent 96px);
+      background-size:96px 6px; opacity:0.95;
     }
 
-    .main-terminal.expanded {
-      transform: translate(-50%, -50%) scale(1.15);
-      transition: 0.2s ease-in-out;
-    }
+    .jeep-dot{ position:absolute; width:22px; height:14px; border-radius:10px 14px 14px 10px; background:#ffca28; border:2px solid #212121; top:50%; transform:translateY(-50%); left:0%; box-shadow:0 0 6px rgba(0,0,0,.45); opacity:0 }
+    .jeep-dot::after{ content:""; position:absolute; width:4px; height:4px; border-radius:50%; background:#212121; bottom:-4px; left:3px; box-shadow:12px 0 0 #212121 }
 
-    .mini-jeep {
-      width: 14px;
-      height: 8px;
-      border-radius: 8px 12px 12px 8px;
-      background: #ffca28;
-      border: 2px solid #333;
-      box-shadow: 0 0 3px rgba(0,0,0,.4);
-    }
+    @keyframes jeep-out{ from{left:0%} to{left:100%} }
+    @keyframes jeep-in{ from{left:100%} to{left:0%} }
+    .road.trip-out .jeep-dot{ opacity:1; animation:jeep-out var(--travel-time,3s) linear forwards }
+    .road.trip-in  .jeep-dot{ opacity:1; animation:jeep-in  var(--travel-time,3s) linear forwards }
 
-    /* terminal positions (corners) */
-    .terminal-1 { top: 40px; right: 70px; }
-    .terminal-2 { bottom: 40px; right: 70px; }
-    .terminal-3 { top: 40px; left: 70px; }
-    .terminal-4 { bottom: 40px; left: 70px; }
+    .traffic-light{ position:absolute; width:14px; height:14px; border-radius:50%; right:-18px; top:50%; transform:translateY(-50%); background:red; box-shadow:0 0 6px rgba(0,0,0,.4) }
+    .traffic-light.green{ background:#00c853 }
 
-    /* ROADS – positioned to connect corners to center */
-    .road {
-      position: absolute;
-      height: 32px;
-      background: var(--road-color);
-      border-radius: 20px;
-      box-shadow: 0 0 8px rgba(0,0,0,.45) inset;
-      z-index: 1;
-    }
+    .road-label{ position:absolute; top:-20px; left:50%; transform:translateX(-50%); background:rgba(255,255,255,0.95); padding:2px 10px; border-radius:999px; font-size:12px; box-shadow:0 2px 6px rgba(0,0,0,0.12) }
 
-    .road-to-1 { width: 380px; top: 90px;  right: 180px; transform: rotate(-22deg); }
-    .road-to-2 { width: 380px; bottom: 90px; right: 180px; transform: rotate(22deg); }
-    .road-to-3 { width: 380px; top: 90px;  left: 180px; transform: rotate(22deg); }
-    .road-to-4 { width: 380px; bottom: 90px; left: 180px; transform: rotate(-22deg); }
+    /* seat modal */
+    .modal-bg{ position:fixed; inset:0; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; z-index:2000 }
+    .modal{ background:white; padding:16px; border-radius:10px; min-width:320px }
+    .seat-grid{ display:grid; grid-template-columns:repeat(11,1fr); gap:6px; margin-top:10px }
+    .seat-square{ width:16px; height:16px; border-radius:3px; border:1px solid #999 }
+    .seat-square.filled{ background:#ef5350 }
+    .seat-square.empty{ background:#c8e6c9 }
 
-    .road::after {
-      content: "";
-      position: absolute;
-      left: 4%;
-      right: 4%;
-      top: 50%;
-      transform: translateY(-50%);
-      height: 4px;
-      background-image: linear-gradient(
-        to right,
-        var(--road-line) 0,
-        var(--road-line) 40px,
-        transparent 40px,
-        transparent 80px
-      );
-      background-size: 80px 4px;
-      opacity: 0.9;
-    }
+    button.fav-btn{ margin-top:8px; padding:8px 14px; border-radius:18px; border:none; background:#eceff1; cursor:pointer; font-size:14px }
+    button.fav-btn.saved{ background:#a5d6a7; color:#1b5e20 }
+    .zoom-control{ background:white; padding:6px 10px; border-radius:6px; border:1px solid rgba(0,0,0,0.08) }
 
-    /* joint in the middle (decor only) */
-    .joint {
-      position: absolute;
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: var(--road-color);
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      z-index: 2;
-      box-shadow: 0 0 6px rgba(0,0,0,.4) inset;
-    }
-
-    /* moving jeep icon on a road */
-    .jeep-dot {
-      position: absolute;
-      width: 20px;
-      height: 12px;
-      border-radius: 10px 14px 14px 10px;
-      background: #ffca28;
-      border: 2px solid #212121;
-      top: 50%;
-      transform: translateY(-50%);
-      left: 0%;
-      box-shadow: 0 0 4px rgba(0,0,0,.5);
-      opacity: 0;
-      cursor: pointer;
-    }
-
-    .jeep-dot::after {
-      content: "";
-      position: absolute;
-      width: 3px;
-      height: 3px;
-      border-radius: 50%;
-      background: #212121;
-      bottom: -3px;
-      left: 3px;
-      box-shadow: 10px 0 0 #212121;
-    }
-
-    /* animations: full road, one direction */
-    @keyframes jeep-out {
-      from { left: 0%; }
-      to   { left: 100%; }
-    }
-
-    @keyframes jeep-in {
-      from { left: 100%; }
-      to   { left: 0%; }
-    }
-
-    .road.trip-out .jeep-dot {
-      opacity: 1;
-      animation: jeep-out var(--travel-time, 3s) linear forwards;
-    }
-
-    .road.trip-in .jeep-dot {
-      opacity: 1;
-      animation: jeep-in var(--travel-time, 3s) linear forwards;
-    }
-
-    /* traffic light circle at end of road */
-    .traffic-light {
-      position: absolute;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      right: -18px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: red;
-      box-shadow: 0 0 4px rgba(0,0,0,0.5);
-    }
-    .traffic-light.green { background: #00c853; }
-
-    .road-label {
-      position: absolute;
-      top: -18px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(255,255,255,0.92);
-      padding: 2px 8px;
-      border-radius: 999px;
-      font-size: 11px;
-      color: #263238;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-      white-space: nowrap;
-    }
-
-    .road-label-empty {
-      opacity: 0.7;
-      font-style: italic;
-    }
-
-    /* MODAL FOR SEATS */
-    .modal-bg {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.5);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 2000;
-    }
-    .modal {
-      background: #fff;
-      padding: 16px 20px;
-      border-radius: 10px;
-      min-width: 320px;
-      max-width: 420px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-    }
-    .seat-grid {
-      display: grid;
-      grid-template-columns: repeat(11, 1fr);
-      gap: 4px;
-      margin-top: 10px;
-    }
-    .seat-square {
-      width: 14px;
-      height: 14px;
-      border-radius: 2px;
-      border: 1px solid #999;
-    }
-    .seat-square.filled { background: #ef5350; }
-    .seat-square.empty  { background: #c8e6c9; }
-    .close-btn {
-      margin-top: 12px;
-      padding: 4px 10px;
-      cursor: pointer;
-    }
-    #close {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      padding: 12px 25px;
-      font-size: 16px;
-      background: #3498db;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
+    /* small screen adjustments */
+    @media (max-width: 900px) {
+      .map-viewport { width: 96vw; height: 60vh; }
+      .dynamic-terminal { min-width: 110px; max-width: 150px; }
+      .main-terminal { padding: 10px 18px; font-size:15px; }
     }
   </style>
 </head>
-
 <body>
-
-<h2>Jeep Terminal Network Map</h2>
-<p class="subtitle">
-  Visual network of the main terminal and connected terminals. Click a terminal to open its page, or ⭐ Save to add a favorite with your own label.
-</p>
-
-<div class="map-wrapper">
-  <div class="map">
-
-    <!-- ROADS (each road knows which terminal it connects to) -->
-    {% for t in terminals[:4] %}
-      {% set route = routes_by_term.get(t.terminal_id) %}
-      {% set rname = route.route_name if route else None %}
-
-      <div class="road road-to-{{ loop.index }}"
-          data-terminal-id="{{ t.terminal_id }}">
-          
-        {% if rname %}
-          <div class="road-label">{{ rname }}</div>
-        {% else %}
-          <div class="road-label road-label-empty">No route set</div>
-        {% endif %}
-
-        <div class="jeep-dot"></div>
-        <div class="traffic-light"></div>
-      </div>
-    {% endfor %}
-
-    <!-- joint (center) -->
-    <div class="joint"></div>
-
-    <!-- TERMINAL CARDS -->
-    {% set slot_classes = ['terminal-1', 'terminal-2', 'terminal-3', 'terminal-4'] %}
-    {% for t in terminals[:4] %}
-      <div class="terminal {{ slot_classes[loop.index0] }}"
-           onclick="goToTerminal({{ t.terminal_id }})">
-
-        <div class="terminal-label">{{ t.terminal_name }}</div>
-        <div class="terminal-meta">
-          ID: {{ t.terminal_id }}<br>
-          {{ t.location }}
-        </div>
-
-        <!-- ⭐ Save favorite button with data attributes -->
-        <button type="button"
-                class="fav-btn"
-                data-terminal-id="{{ t.terminal_id }}"
-                data-terminal-name="{{ t.terminal_name }}">
-          <span class="star">⭐</span>
-          <span class="fav-text">Save</span>
-        </button>
-      </div>
-    {% endfor %}
-
-    <!-- MAIN TERMINAL (center) -->
-    <div class="main-terminal" id="mainTerminal">
-      MAIN TERMINAL
-      <div class="mini-jeep"></div>
+  <h2>Jeep Terminal Network Map</h2>
+  <div class="controls">
+    <div class="zoom-control">
+      Zoom: <input id="zoomRange" type="range" min="0.6" max="1.6" step="0.05" value="1">
     </div>
-
+    <div class="zoom-control">
+      Show up to: <strong>20</strong> terminals
+    </div>
+    <div style="color:#455a64; font-size:13px">Click terminal to open page • ⭐ Save to add favorite</div>
   </div>
-</div>
 
-<!-- SEAT MODAL -->
-<div class="modal-bg" id="seatModalBg">
-  <div class="modal">
-    <h3>Jeep Seats — ID <span id="seatJeepId"></span></h3>
-    <div id="seatLayout" class="seat-grid"></div>
-    <button class="close-btn" onclick="closeSeatModal()">Close</button>
+  <div class="map-wrapper">
+    <div class="map-viewport" id="mapViewport" aria-label="Jeep terminal map">
+      <div class="map-inner" id="mapInner">
+        <!-- dynamic roads+terminals -->
+        {% set max_slots = 20 %}
+        {% for t in terminals[:max_slots] %}
+          {% set route = routes_by_term.get(t.terminal_id) %}
+          {% set rname = route.route_name if route else None %}
+          <div class="dynamic-road road" data-terminal-id="{{ t.terminal_id }}" data-index="{{ loop.index0 }}">
+            {% if rname %}
+              <div class="road-label">{{ rname }}</div>
+            {% else %}
+              <div class="road-label">No route</div>
+            {% endif %}
+            <div class="jeep-dot"></div>
+            <div class="traffic-light"></div>
+          </div>
+
+          <div class="dynamic-terminal terminal" data-terminal-id="{{ t.terminal_id }}" data-index="{{ loop.index0 }}" onclick="goToTerminal({{ t.terminal_id }})">
+            <div class="terminal-label">{{ t.terminal_name }}</div>
+            <div class="terminal-meta">ID: {{ t.terminal_id }}<br>{{ t.location }}</div>
+            <button class="fav-btn" data-terminal-id="{{ t.terminal_id }}" data-terminal-name="{{ t.terminal_name }}"><span>⭐</span> Save</button>
+          </div>
+        {% endfor %}
+
+        <div class="joint" id="joint" style="position:absolute; width:36px; height:36px; border-radius:50%; background:var(--road-color); left:50%; top:50%; transform:translate(-50%,-50%); z-index:400"></div>
+        <div class="main-terminal" id="mainTerminal">MAIN TERMINAL <div style="width:14px;height:8px;border-radius:8px 12px 12px 8px;background:#ffca28;border:2px solid #333;margin-left:8px"></div></div>
+
+      </div>
+    </div>
   </div>
-</div>
 
-<button onclick="window.location.href='/commuter'" id="close">Home</button>
+  <div class="modal-bg" id="seatModalBg">
+    <div class="modal">
+      <h3>Jeep Seats — ID <span id="seatJeepId"></span></h3>
+      <div id="seatLayout" class="seat-grid"></div>
+      <button onclick="closeSeatModal()">Close</button>
+    </div>
+  </div>
 
-<script>
-  // Tell JS what MAIN terminal is (comes from Flask)
-  window.MAIN_TERMINAL_ID = {{ main_terminal_id }};
-</script>
-<script src="{{ url_for('static', filename='map/map.js') }}"></script>
+  <script> window.MAIN_TERMINAL_ID = {{ main_terminal_id }}; </script>
+  <script src="{{ url_for('static', filename='map/map.js') }}"></script>
+
 </body>
 </html>

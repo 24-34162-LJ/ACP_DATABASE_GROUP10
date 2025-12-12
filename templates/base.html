@@ -1,91 +1,102 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <title>{% block title %} {% endblock %}</title>
-        <!-- Required meta tags -->
-        <meta charset="utf-8" />
-        <meta
-            name="viewport"
-            content="width=device-width, initial-scale=1, shrink-to-fit=no"
-        />
-        
-        <!-- Bootstrap CSS v5.2.1 -->
-        <link
-            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-            rel="stylesheet"
-            integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
-            crossorigin="anonymous"
-        />
-        <!-- font typr-->
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=M+PLUS+1p&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Stack+Sans+Notch:wght@200..700&display=swap" rel="stylesheet">
+<head>
+    <title>{% block title %}{% endblock %}</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-        <!--local css-->
-        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
-    </head>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
 
-    <body>
-        <header>
-        <nav class="navbar navbar-expand-lg my-navbar">
-            <div class="container">
+    <style>
+        body {
+            font-family: "Fira Sans", sans-serif;
+            background: #e9fffb;
+        }
 
-            <!-- LOGO -->
-            <a class="navbar-brand d-flex align-items-center" href="#">
-                <picture class="brand-picture">
-                <source srcset="{{ url_for('static', filename='images/jeep_icon.png') }}" type="image/png" />
-                <img
-                    src="{{ url_for('static', filename='images/jeep_icon.png') }}"
-                    alt="MyJeepBa Logo"
-                    class="brand-logo"
-                />
-                </picture>
-            </a>
+        /* NAVBAR */
+        .top-nav {
+            background: white;
+            border-bottom: 2px solid #00c4b3;
+            padding: 10px 0;
+        }
 
-            <!-- TOGGLER -->
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
-                    data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
-                    aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
+        .brand-logo {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+        }
 
-            <!-- LINKS -->
-            <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-                <li class="nav-item">
-                    <a class="nav-link active" aria-current="page" href="{{ url_for('index')}}">Home</a>
-                </li>
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('login') }}">longin</a></li>
-                <li class="nav-item"><a class="nav-link" href="#">Link</a></li>
-                <li class="nav-item"><a class="nav-link" href="#">Link</a></li>
-                <li class="nav-item"><a class="nav-link" href="#">Link</a></li>
-                </ul>
-            </div>
-            </div>
-        </nav>
-        </header>
+        .navbar-brand span {
+            font-weight: 700;
+            margin-left: 10px;
+            font-size: 1.4rem;
+            color: #083b46;
+        }
 
-        <main>
-            {% block content %}
+        .nav-link {
+            font-weight: 500;
+            padding: 10px 16px !important;
+            color: #083b46 !important;
+        }
 
-            {% endblock %}
-        </main>
-        <footer>
-            <!-- place footer here -->
-             
-        </footer>
-        <!-- Bootstrap JavaScript Libraries -->
-        <script
-            src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"
-            integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r"
-            crossorigin="anonymous"
-        ></script>
+        .nav-link:hover {
+            color: #00a89b !important;
+        }
 
-        <script
-            src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.min.js"
-            integrity="sha384-BBtl+eGJRgqQAUMxJ7pMwbEyER4l1g+O15P+16Ep7Q9Q+zqX6gSbd85u4mG4QzX+"
-            crossorigin="anonymous"
-        ></script>
-    </body>
+        footer {
+            background: #e9fffb;
+            padding: 30px 0 10px;
+            font-size: 14px;
+            color: #38646e;
+        }
+    </style>
+
+    {% block head %}{% endblock %}
+</head>
+
+<body>
+
+<!-- NAVIGATION -->
+<nav class="navbar navbar-expand-lg top-nav">
+    <div class="container">
+
+        <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
+            <img src="{{ url_for('static', filename='images/jeep_icon.png') }}" class="brand-logo">
+            <span>MAYJEEPBA?</span>
+        </a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="nav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a href="{{ url_for('index') }}" class="nav-link">Home</a></li>
+                <li class="nav-item"><a href="{{ url_for('sign') }}" class="nav-link">Sign Up</a></li>
+                <li class="nav-item"><a href="{{ url_for('login') }}" class="nav-link">Login</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<main>
+    {% block content %}{% endblock %}
+</main>
+
+<footer class="text-center">
+    © 2025 MAYJEEPBA?  
+    <br>
+    <a href="{{ url_for('search') }}" class="mx-2">Search</a>
+    <a href="{{ url_for('favorites_page') }}" class="mx-2">Favorites</a>
+    <a href="{{ url_for('notifications_page') }}" class="mx-2">Notifications</a>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
 </html>

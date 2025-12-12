@@ -1,166 +1,182 @@
 {% extends "base.html" %}
 {% block title %}Operator Dashboard{% endblock %}
 
-{% block content %}
-
+{% block head %}
 <style>
-  .op-container {
-    max-width: 1100px;
-    margin: 0 auto;
-  }
-  .op-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin-bottom: 15px;
-  }
-  .op-top h1 {
-    margin: 0;
-  }
-  .op-select label {
-    font-weight: bold;
-    font-size: 14px;
-    margin-right: 6px;
-  }
-  .op-select select {
-    padding: 4px 8px;
-    font-size: 14px;
-  }
-  .op-link {
-    font-size: 13px;
-    margin-left: 6px;
-  }
+:root{
+  --bg1: #dffaf7;
+  --bg2: #bff2ee;
+  --card: #ffffff;
+  --accent: linear-gradient(90deg,#06b6d4,#0ea5a9);
+  --muted: #6b7280;
+  --radius: 12px;
+  --shadow: 0 10px 30px rgba(2,6,23,0.08);
+}
 
-  .op-card {
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 0 6px rgba(0,0,0,.15);
-    padding: 15px 18px;
-    margin-top: 15px;
-  }
-  .op-card h2 {
-    margin-top: 0;
-    font-size: 18px;
-  }
+body { background: linear-gradient(180deg,var(--bg1),var(--bg2)); }
 
-  .inline-form {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    align-items: flex-end;
-  }
+.op-wrap {
+  max-width: 1100px;
+  margin: 28px auto;
+  padding: 8px;
+  box-sizing: border-box;
+}
 
-  .inline-form label {
-    font-size: 13px;
-    display: block;
-    margin-bottom: 3px;
-  }
+.header-row {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-bottom:16px;
+  flex-wrap:wrap;
+}
+.header-left h1 { margin:0; font-size:1.4rem; color:#063238; }
+.header-left p { margin:4px 0 0; color:var(--muted); font-size:0.95rem; }
 
-  .inline-form input[type="text"],
-  .inline-form input[type="number"] {
-    padding: 6px 8px;
-    font-size: 13px;
-  }
+.controls {
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+.select {
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.select label { font-weight:700; color:#073642; }
+.select select {
+  min-width:220px;
+  padding:8px 10px;
+  border-radius:10px;
+  border:1px solid rgba(2,6,23,0.06);
+  background:#fff;
+  box-shadow: 0 6px 14px rgba(2,6,23,0.03);
+}
 
-  .btn {
-    padding: 6px 10px;
-    border: none;
-    border-radius: 4px;
-    font-size: 13px;
-    cursor: pointer;
-  }
-  .btn-primary { background: #3498db; color: #fff; }
-  .btn-warning { background: #f1c40f; color: #000; }
-  .btn-small { padding: 4px 8px; font-size: 12px; }
+/* cards */
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding:16px;
+  margin-bottom:14px;
+  border:1px solid rgba(2,6,23,0.04);
+}
 
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 14px;
-    margin-top: 8px;
-  }
-  th, td {
-    border-bottom: 1px solid #ddd;
-    padding: 6px 8px;
-    text-align: left;
-  }
-  th {
-    background: #eceff1;
-  }
+/* add jeep form */
+.inline-form { display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; }
+.inline-form .field { display:flex; flex-direction:column; }
+.inline-form label { font-size:13px; color:var(--muted); margin-bottom:6px; }
+.inline-form input[type="text"], .inline-form input[type="number"] {
+  padding:8px 10px; border-radius:8px; border:1px solid rgba(2,6,23,0.06);
+  min-width:160px; box-sizing:border-box;
+}
 
-  .status-badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 999px;
-    font-size: 11px;
-    color: #fff;
-    background: #3498db;
-  }
+/* buttons */
+.btn {
+  padding:8px 12px; border-radius:10px; border:none; cursor:pointer; font-weight:700;
+  font-size:13px;
+}
+.btn-primary {
+  background: var(--accent); color:#fff; box-shadow:0 6px 20px rgba(6,182,212,0.12);
+}
+.btn-ghost {
+  background:transparent; border:1px solid rgba(2,6,23,0.06); color:#073642;
+}
+.btn-danger {
+  background: linear-gradient(90deg,#ef4444,#dc2626); color:#fff;
+}
+.btn-small { padding:6px 8px; font-size:12px; border-radius:8px; }
 
-  .small-note {
-    font-size: 12px;
-    color: #777;
-    margin-top: 4px;
-  }
+/* table */
+.table {
+  width:100%;
+  border-collapse:collapse;
+  margin-top:12px;
+  font-size:14px;
+}
+.table thead th {
+  text-align:left; padding:12px; background:#f8fffe; color:#073642;
+  border-bottom:1px solid rgba(2,6,23,0.04); font-weight:700;
+}
+.table td { padding:10px; border-bottom:1px solid rgba(2,6,23,0.03); vertical-align:middle; }
+.row-actions { display:flex; gap:8px; align-items:center; }
+
+/* input in table */
+.pass-input { width:72px; padding:6px 8px; border-radius:8px; border:1px solid rgba(2,6,23,0.06); }
+
+/* status */
+.status-badge { display:inline-block; padding:6px 10px; border-radius:999px; font-weight:700; font-size:12px; color:#fff; background: linear-gradient(90deg,#16a34a,#059669); }
+
+/* empty state */
+.empty-queue { text-align:center; color:var(--muted); padding:18px 12px; }
+
+/* small responsive */
+@media (max-width:820px) {
+  .select select { min-width:160px; }
+  .inline-form input[type="text"], .inline-form input[type="number"] { min-width:120px; }
+}
 </style>
+{% endblock %}
 
-<div class="op-container">
+{% block content %}
+<div class="op-wrap">
 
-  <div class="op-top">
-    <div>
+  <div class="header-row">
+    <div class="header-left">
       <h1>Operator Dashboard</h1>
-      <p style="margin:4px 0 0;">Manage jeepney entries, departures, and seats.</p>
+      <p>Manage jeepney queue, add/delete jeeps, dispatch trips to Main Terminal.</p>
     </div>
 
-    <div class="op-select">
-      <label for="terminalSelect">Terminal:</label>
-      <select id="terminalSelect">
-        {% for t in terminals %}
-          <option value="{{ t.terminal_id }}">
-            {{ t.terminal_name }} (ID {{ t.terminal_id }})
-          </option>
-        {% endfor %}
-      </select>
-      <!-- Link to open the "seat" simulation for selected terminal -->
-      <a href="#" id="seatLink" class="op-link">Open Seat Simulation</a>
-      <!-- Link to main terminal screen -->
-      <a href="{{ url_for('mainterminal') }}" class="op-link">Open Main Terminal Screen</a>
-      <!-- Add terminal link -->
-      <a href="{{ url_for('Add') }}" class="op-link">+ Add Terminal</a>
+    <div class="controls">
+      <div class="select">
+        <label for="terminalSelect">Terminal</label>
+        <select id="terminalSelect" aria-label="Choose terminal">
+          <option value="">— Select terminal —</option>
+          {% for t in terminals %}
+            <option value="{{ t.terminal_id }}">{{ t.terminal_name }} (ID {{ t.terminal_id }})</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="links">
+        <a id="seatLink" class="btn btn-ghost" href="#" aria-disabled="true">Open Seat Sim</a>
+        <a href="{{ url_for('mainterminal') }}" class="btn btn-ghost">Open Main Terminal</a>
+        <a href="{{ url_for('Add') }}" class="btn btn-ghost">+ Add Terminal</a>
+      </div>
     </div>
   </div>
 
-  <!-- ADD JEEP PANEL -->
-  <div class="op-card">
-    <h2>Add Jeepney to Selected Terminal</h2>
-    <form class="inline-form" onsubmit="return false;">
-      <div>
-        <label>Plate Number</label>
-        <input type="text" id="plateInput" placeholder="e.g. ABC 1234">
+  <!-- Add Jeep -->
+  <section class="card" aria-labelledby="addJeepHeading">
+    <h2 id="addJeepHeading" style="margin-top:0;">Add Jeepney to Selected Terminal</h2>
+
+    <form class="inline-form" onsubmit="return false;" aria-label="add jeep form">
+      <div class="field">
+        <label for="plateInput">Plate number</label>
+        <input id="plateInput" type="text" placeholder="e.g. ABC 1234" />
       </div>
-      <div>
-        <label>Capacity</label>
-        <input type="number" id="capacityInput" value="22" min="1">
+
+      <div class="field">
+        <label for="capacityInput">Capacity</label>
+        <input id="capacityInput" type="number" min="1" value="22" />
       </div>
+
       <div>
-        <button class="btn btn-primary" onclick="addJeep()">Add Jeep</button>
+        <button id="addJeepBtn" class="btn btn-primary">Add Jeep</button>
       </div>
     </form>
-    <p class="small-note">
-      This will create a new jeepney and place it in the queue of the selected terminal.
-    </p>
-  </div>
 
-  <!-- QUEUE PANEL -->
-  <div class="op-card">
-    <h2>Current Queue at Terminal</h2>
-    <p class="small-note">
-      Update passenger count and depart jeeps to the Main Terminal.
-    </p>
+    <p style="margin-top:10px; color:var(--muted);">New jeepneys will be added as <strong>Waiting</strong> in the selected terminal's queue.</p>
+  </section>
 
-    <table>
+  <!-- Queue -->
+  <section class="card" aria-labelledby="queueHeading">
+    <h2 id="queueHeading" style="margin-top:0;">Current Queue at Terminal</h2>
+    <p style="color:var(--muted); margin:6px 0 10px;">Update passenger counts, delete a jeep, or dispatch to Main Terminal.</p>
+
+    <table class="table" aria-describedby="queueHeading">
       <thead>
         <tr>
           <th>Jeep ID</th>
@@ -169,206 +185,267 @@
           <th>Passengers</th>
           <th>Seats Left</th>
           <th>Status</th>
-          <th>Actions</th>
+          <th style="width:240px">Actions</th>
         </tr>
       </thead>
       <tbody id="queueBody">
-        <tr><td colspan="7">Select a terminal to load queue...</td></tr>
+        <tr class="empty-queue"><td colspan="7">Select a terminal to load the queue.</td></tr>
       </tbody>
     </table>
-  </div>
-
+  </section>
 </div>
 
 <script>
-  const MAIN_TERMINAL_ID = {{ main_terminal_id }};
-  const terminalSelect = document.getElementById("terminalSelect");
-  const queueBody = document.getElementById("queueBody");
-  const plateInput = document.getElementById("plateInput");
-  const capacityInput = document.getElementById("capacityInput");
-  const seatLink = document.getElementById("seatLink");
+/* ---------- Config ---------- */
+const MAIN_TERMINAL_ID = {{ main_terminal_id|tojson }};
+const seatUrlTemplate = "{{ url_for('operator_seat', terminal_id=0) }}";
 
-  // keep seat simulation link synced with selected terminal
-  function updateSeatLink() {
-    const terminalId = terminalSelect.value;
-    seatLink.href = "{{ url_for('operator_seat', terminal_id=0) }}".replace("0", terminalId);
+/* grab elements safely (may be missing in some template variants) */
+const terminalSelect = document.getElementById("terminalSelect");
+const queueBody = document.getElementById("queueBody");
+const plateInput = document.getElementById("plateInput");
+const capacityInput = document.getElementById("capacityInput");
+const seatLink = document.getElementById("seatLink");
+const addJeepBtn = document.getElementById("addJeepBtn");
+const deleteTerminalBtn = document.getElementById("deleteTerminalBtn");
+
+/* safe wrapper to avoid "cannot set properties of null" */
+function safeSetDisabled(el, value){
+  if (!el) return;
+  try { el.disabled = Boolean(value); } catch(e){ console.warn("safeSetDisabled failed", e); }
+}
+
+/* ---------- safeFetch (with credentials) ---------- */
+async function safeFetch(url, opts = {}) {
+  opts = Object.assign({ credentials: 'same-origin' }, opts);
+  const res = await fetch(url, opts);
+  const ct = res.headers.get('content-type') || '';
+  const text = await res.text();
+
+  if (!ct.includes('application/json')) {
+    throw { ok: res.ok, status: res.status, message: `Server did not return JSON (status ${res.status})`, body: text };
   }
 
-  /* ---------- LOAD QUEUE FOR SELECTED TERMINAL ---------- */
-  function loadQueue() {
-    const terminalId = terminalSelect.value;
-    updateSeatLink();
+  let data;
+  try { data = text ? JSON.parse(text) : {}; }
+  catch(e) { throw { ok: res.ok, status: res.status, message: 'Invalid JSON from server', body: text }; }
 
-    if (!terminalId) {
-      queueBody.innerHTML = '<tr><td colspan="7">No terminal selected.</td></tr>';
+  if (!res.ok) {
+    const msg = data?.message || data?.error || `Server error (${res.status})`;
+    throw { ok:false, status: res.status, message: msg, body: data };
+  }
+  return data;
+}
+
+/* ---------- UI helpers ---------- */
+function setSeatLink(enabled, terminalId) {
+  if (!seatLink) return;
+  if (enabled && terminalId) {
+    seatLink.href = seatUrlTemplate.replace("0", terminalId);
+    seatLink.removeAttribute("aria-disabled");
+  } else {
+    seatLink.href = "#";
+    seatLink.setAttribute("aria-disabled", "true");
+  }
+}
+function setDeleteTerminalState(enabled){
+  safeSetDisabled(deleteTerminalBtn, !enabled ? true : false);
+}
+function renderEmpty(msg = "No jeeps in queue.") {
+  if (!queueBody) return;
+  queueBody.innerHTML = `<tr class="empty-queue"><td colspan="7">${msg}</td></tr>`;
+}
+
+/* ---------- loadQueue ---------- */
+async function loadQueue() {
+  if (!terminalSelect) { console.warn("No terminalSelect element"); return; }
+  const terminalId = terminalSelect.value;
+  setSeatLink(Boolean(terminalId), terminalId);
+  setDeleteTerminalState(Boolean(terminalId));
+
+  if (!terminalId) {
+    renderEmpty('Select a terminal to load the queue.');
+    return;
+  }
+  if (queueBody) queueBody.innerHTML = '<tr><td colspan="7">Loading queue...</td></tr>';
+
+  try {
+    const data = await safeFetch(`/api/terminal/${terminalId}/queue`, { method: 'GET' });
+    if (!data || data.length === 0) {
+      renderEmpty('No jeeps in queue.');
       return;
     }
 
-    queueBody.innerHTML = '<tr><td colspan="7">Loading queue...</td></tr>';
+    if (!queueBody) return;
+    queueBody.innerHTML = '';
+    data.forEach(j => {
+      const cap = j.capacity ?? 22;
+      const pass = j.passengers ?? 0;
+      const left = Math.max(0, cap - pass);
 
-    fetch(`/api/terminal/${terminalId}/queue`)
-      .then(res => res.json())
-      .then(data => {
-        if (!data.length) {
-          queueBody.innerHTML = '<tr><td colspan="7">No jeeps in queue.</td></tr>';
-          return;
-        }
-
-        queueBody.innerHTML = "";
-        data.forEach(j => {
-          const cap = j.capacity ?? 22;
-          const pass = j.passengers ?? 0;
-          const left = cap - pass;
-
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${j.jeepney_id}</td>
-            <td>${j.plate_number}</td>
-            <td>${cap}</td>
-            <td>
-              <input type="number"
-                     min="0"
-                     max="${cap}"
-                     value="${pass}"
-                     style="width:60px;"
-                     data-jeep="${j.jeepney_id}"
-                     class="pass-input">
-            </td>
-            <td>${left}</td>
-            <td><span class="status-badge">Waiting / Boarding</span></td>
-            <td>
-              <button class="btn btn-warning btn-small"
-                      onclick="updatePassengers(${j.jeepney_id}, ${cap})">
-                Update Seats
-              </button>
-              <button class="btn btn-primary btn-small"
-                      onclick="departJeep(${j.jeepney_id}, ${cap})">
-                Depart → Main
-              </button>
-            </td>
-          `;
-          queueBody.appendChild(tr);
-        });
-      })
-      .catch(err => {
-        console.error("Error loading queue:", err);
-        queueBody.innerHTML = '<tr><td colspan="7">Error loading queue.</td></tr>';
-      });
-  }
-
-  /* ---------- ADD NEW JEEP TO TERMINAL ---------- */
-  function addJeep() {
-    const plate = plateInput.value.trim();
-    const cap = parseInt(capacityInput.value, 10) || 22;
-    const terminalId = terminalSelect.value;
-
-    if (!plate) {
-      alert("Please enter a plate number.");
-      return;
-    }
-
-    fetch(`/api/terminal/${terminalId}/jeepneys`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        plate_number: plate,
-        capacity: cap
-      })
-    })
-    .then(res => {
-      if (!res.ok) {
-        return res.json().then(x => { throw x; });
-      }
-      return res.json();
-    })
-    .then(data => {
-      alert(`Jeepney ${data.plate_number} added to terminal ${terminalId}.`);
-      plateInput.value = "";
-      capacityInput.value = 22;
-      loadQueue();
-    })
-    .catch(err => {
-      console.error("Error adding jeep:", err);
-      alert("Failed to add jeep.");
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${j.jeepney_id}</td>
+        <td>${j.plate_number}</td>
+        <td>${cap}</td>
+        <td><input class="pass-input" data-jeep="${j.jeepney_id}" type="number" min="0" max="${cap}" value="${pass}"></td>
+        <td class="seats-left">${left}</td>
+        <td><span class="status-badge">${j.status ? j.status : 'Waiting'}</span></td>
+        <td>
+          <div class="row-actions">
+            <button class="btn btn-small btn-primary" data-action="depart" data-jeep="${j.jeepney_id}" data-cap="${cap}">Depart → Main</button>
+            <button class="btn btn-small btn-danger" data-action="delete-jeep" data-jeep="${j.jeepney_id}">Delete</button>
+          </div>
+        </td>
+      `;
+      queueBody.appendChild(tr);
     });
-  }
-
-  /* ---------- UPDATE PASSENGERS (SEAT STATUS) ---------- */
-  function updatePassengers(jeepId, cap) {
-    const terminalId = terminalSelect.value;
-    const input = document.querySelector(`input.pass-input[data-jeep="${jeepId}"]`);
-    if (!input) return;
-
-    let value = parseInt(input.value, 10) || 0;
-    if (value < 0) value = 0;
-    if (value > cap) value = cap;
-    input.value = value;
-
-    fetch(`/api/terminal/${terminalId}/jeepneys/${jeepId}/passengers`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ passengers: value })
-    })
-    .then(res => {
-      if (!res.ok) {
-        return res.json().then(x => { throw x; });
+  } catch (err) {
+    console.error('loadQueue error', err);
+    if (queueBody) {
+      if (typeof err.body === 'string' && err.body.trim().startsWith('<')) {
+        renderEmpty('Server returned HTML (check console).');
+        console.log('Server HTML:', err.body);
+      } else {
+        renderEmpty(err.message || 'Error loading queue.');
       }
-      return res.json();
-    })
-    .then(data => {
-      loadQueue(); // refresh seats left
-    })
-    .catch(err => {
-      console.error("Error updating passengers:", err);
-      alert("Failed to update seat status.");
-    });
-  }
-
-  /* ---------- DEPART JEEP TO MAIN TERMINAL ---------- */
-  function departJeep(jeepId, cap) {
-    const terminalId = parseInt(terminalSelect.value, 10);
-    const input = document.querySelector(`input.pass-input[data-jeep="${jeepId}"]`);
-    if (!input) return;
-
-    let passengers = parseInt(input.value, 10) || 0;
-    if (passengers < 0) passengers = 0;
-    if (passengers > cap) passengers = cap;
-
-    if (!confirm(`Depart Jeep ${jeepId} from Terminal ${terminalId} to Main with ${passengers} passengers?`)) {
-      return;
     }
+  }
+}
 
-    fetch("/api/trips/depart", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+/* ---------- addJeep ---------- */
+async function addJeep(){
+  if (!addJeepBtn) { alert('Add button not found'); return; }
+  const plate = plateInput ? plateInput.value.trim() : '';
+  const cap = capacityInput ? parseInt(capacityInput.value,10) || 22 : 22;
+  const terminalId = terminalSelect ? terminalSelect.value : null;
+  if (!terminalId) { alert('Select a terminal first.'); return; }
+  if (!plate) { alert('Enter plate number.'); return; }
+
+  addJeepBtn.disabled = true;
+  try {
+    await safeFetch(`/api/terminal/${terminalId}/jeepneys`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ plate_number: plate, capacity: cap })
+    });
+    if (plateInput) plateInput.value = '';
+    if (capacityInput) capacityInput.value = 22;
+    await loadQueue();
+  } catch (err) {
+    console.error('addJeep error', err);
+    alert(err.message || 'Failed to add jeep.');
+  } finally { addJeepBtn.disabled = false; }
+}
+
+/* ---------- departJeep ---------- */
+async function departJeep(jeepId, cap){
+  const terminalId = terminalSelect ? parseInt(terminalSelect.value,10) : null;
+  if (!terminalId) { alert('Select a terminal first.'); return; }
+
+  const input = document.querySelector(`input.pass-input[data-jeep="${jeepId}"]`);
+  const passengers = input ? Math.max(0, Math.min(cap, parseInt(input.value,10) || 0)) : 0;
+  if (!confirm(`Depart Jeep ${jeepId} from Terminal ${terminalId} to Main (${passengers} pax)?`)) return;
+
+  try {
+    const data = await safeFetch('/api/trips/depart', {
+      method:'POST',
+      headers: {'Content-Type':'application/json'},
       body: JSON.stringify({
         jeepney_id: jeepId,
         origin_terminal_id: terminalId,
         destination_terminal_id: MAIN_TERMINAL_ID,
         passengers: passengers
       })
-    })
-    .then(res => {
-      if (!res.ok) {
-        return res.json().then(x => { throw x; });
-      }
-      return res.json();
-    })
-    .then(data => {
-      console.log("Trip departed, trip_id:", data.trip_id);
-      alert(`Jeep ${jeepId} departed to Main Terminal.`);
-      loadQueue();
-    })
-    .catch(err => {
-      console.error("Error departing jeep:", err);
-      alert("Failed to depart jeep.");
     });
+    alert(`Departed (trip ${data.trip_id}).`);
+    await loadQueue();
+  } catch (err) {
+    console.error('depart error', err);
+    alert(err.message || 'Failed to depart jeep.');
   }
+}
 
-  // Initial
-  terminalSelect.addEventListener("change", loadQueue);
-  updateSeatLink();
-  loadQueue();
+/* ---------- deleteJeep ---------- */
+async function deleteJeep(jeepId){
+  const terminalId = terminalSelect ? terminalSelect.value : null;
+  if (!terminalId) { alert('Select a terminal first.'); return; }
+  if (!confirm(`Delete Jeep ${jeepId} from Terminal ${terminalId}?`)) return;
+
+  try {
+    const data = await safeFetch(`/api/terminal/${terminalId}/jeepneys/${jeepId}`, { method: 'DELETE' });
+    alert(data.message || 'Jeep deleted.');
+    await loadQueue();
+  } catch (err) {
+    console.error('deleteJeep error', err);
+    if (typeof err.body === 'string' && err.body.trim().startsWith('<')) {
+      alert('Failed to delete — server returned HTML (check console).');
+      console.log('Server HTML:', err.body);
+    } else {
+      alert(err.message || 'Failed to delete jeep.');
+    }
+  }
+}
+
+/* ---------- deleteTerminal ---------- */
+async function deleteTerminal(){
+  const terminalId = terminalSelect ? terminalSelect.value : null;
+  if (!terminalId) { alert('Select a terminal first.'); return; }
+  if (!confirm(`Permanently delete Terminal ${terminalId}?`)) return;
+  safeSetDisabled(deleteTerminalBtn, true);
+
+  try {
+    const data = await safeFetch(`/api/terminals/${terminalId}`, { method: 'DELETE' });
+    alert(data.message || 'Terminal deleted.');
+    const opt = terminalSelect ? terminalSelect.querySelector(`option[value="${terminalId}"]`) : null;
+    if (opt) opt.remove();
+    if (terminalSelect) terminalSelect.value = '';
+    await loadQueue();
+  } catch (err) {
+    console.error('deleteTerminal error', err);
+    alert(err.message || 'Failed to delete terminal.');
+  } finally { safeSetDisabled(deleteTerminalBtn, false); }
+}
+
+/* ---------- Events (delegation) ---------- */
+if (queueBody) {
+  queueBody.addEventListener('click', function(e){
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const action = btn.dataset.action;
+    const jeepId = btn.dataset.jeep;
+    const cap = parseInt(btn.dataset.cap,10) || 22;
+    if (action === 'depart') departJeep(jeepId, cap);
+    else if (action === 'delete-jeep') deleteJeep(jeepId);
+  });
+
+  queueBody.addEventListener('keydown', function(e){
+    if (e.key !== 'Enter') return;
+    const input = e.target;
+    if (input && input.classList.contains('pass-input')) {
+      e.preventDefault();
+      const jeepId = input.dataset.jeep;
+      const row = input.closest('tr');
+      const capCell = row ? row.querySelector('td:nth-child(3)') : null;
+      const cap = capCell ? parseInt(capCell.textContent,10) || 22 : 22;
+      const leftCell = row.querySelector('.seats-left');
+      if (leftCell) leftCell.textContent = Math.max(0, cap - (parseInt(input.value,10) || 0));
+    }
+  });
+}
+
+/* ---------- Top-level bindings (guard element exists) ---------- */
+if (terminalSelect) terminalSelect.addEventListener('change', loadQueue);
+if (addJeepBtn) addJeepBtn.addEventListener('click', (ev)=>{ ev.preventDefault(); addJeep(); });
+if (deleteTerminalBtn) deleteTerminalBtn.addEventListener('click', deleteTerminal);
+
+/* ---------- Init ---------- */
+document.addEventListener('DOMContentLoaded', () => {
+  const pre = "{{ selected_terminal_id if selected_terminal_id is defined else '' }}";
+  if (pre && terminalSelect) try { terminalSelect.value = pre } catch(e){}
+  // load queue only when elements present
+  if (terminalSelect && queueBody) loadQueue();
+});
 </script>
 
 {% endblock %}

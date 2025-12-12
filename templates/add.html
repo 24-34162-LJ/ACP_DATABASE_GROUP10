@@ -1,182 +1,493 @@
 {% extends "base.html" %}
 {% block title %} {{ action|capitalize }} {{ model|capitalize }} {% endblock %}
-{% block content %}
 
-<h2>{{ action|capitalize }} {{ model|capitalize }}</h2>
-
+{% block head %}
 <style>
-    .btn-area {
-        margin-top: 20px;
-        display: flex;
-        gap: 10px;
-    }
+/* Container */
+.form-page {
+  display: flex;
+  justify-content: center;   /* center horizontally */
+  align-items: flex-start;    /* keep near top, not vertically centered */
+  padding: 24px 16px;         /* spacing around */
+  min-height: 0;             /* don't force tall height */
+  box-sizing: border-box;
+}
 
-    .save-btn, .cancel-btn {
-        padding: 8px 16px;
-        font-size: 15px;
-        cursor: pointer;
-        border: none;
-        border-radius: 6px;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
+.form-card {
+  width: 100%;
+  max-width: 600px; /* default narrower width */
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 12px 36px rgba(10,20,30,0.06);
+  border: 1px solid rgba(15,23,42,0.04);
+}
 
-    .save-btn {
-        background: #007bff;
-        color: white;
-    }
-    .save-btn:hover {
-        background: #006ae6;
-    }
+/* When compact mode is active (for small forms) */
+.form-card.compact {
+  max-width: 480px;
+  padding: 18px;
+}
 
-    .cancel-btn {
-        background: #dc3545;
-        color: white;
-        text-decoration: none;
-    }
-    .cancel-btn:hover {
-        background: #c82333;
-    }
+/* Header */
+.form-card h2 {
+  margin: 0 0 8px 0;
+  font-size: 1.25rem;
+  color: #0f172a;
+}
+.form-sub {
+  margin: 0 0 14px 0;
+  color: #6b7280;
+  font-size: 0.95rem;
+}
 
-    .icon {
-        font-size: 18px;
-    }
+/* Form grid */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 18px;
+}
+@media (max-width: 780px) {
+  .form-grid { grid-template-columns: 1fr; }
+}
+
+/* Compact grid: single column, tighter spacing */
+.form-grid.compact {
+  grid-template-columns: 1fr;
+  gap: 10px;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+/* Each field */
+.field {
+  display: flex;
+  flex-direction: column;
+}
+label.field-label {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #0b1220;
+  font-size: 0.95rem;
+}
+input[type="text"], input[type="email"], input[type="number"], select, textarea {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(15,23,42,0.06);
+  font-size: 0.95rem;
+  outline: none;
+  box-sizing: border-box;
+}
+textarea { min-height: 96px; resize: vertical; }
+input:focus, select:focus, textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 8px 20px rgba(37,99,235,0.06);
+}
+
+/* Full-width helper row (for long inputs or notes) */
+.field-full { grid-column: 1 / -1; }
+
+/* Small helper / error text */
+.help-text { font-size: 0.85rem; color: #6b7280; margin-top:6px; }
+.field-error { color: #dc3545; font-size: 0.85rem; margin-top:6px; }
+
+/* Buttons area */
+.btn-area {
+  margin-top: 18px;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  align-items: center;
+}
+.save-btn, .cancel-btn {
+  padding: 10px 14px;
+  font-size: 15px;
+  cursor: pointer;
+  border: none;
+  border-radius: 8px;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+.save-btn {
+  background: linear-gradient(90deg,#2563eb,#1e40af);
+  color: white;
+  font-weight: 700;
+}
+.save-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(37,99,235,0.08); }
+.cancel-btn {
+  background: transparent;
+  border: 1px solid rgba(15,23,42,0.06);
+  color: #0b1220;
+  padding: 9px 12px;
+}
+.cancel-btn:hover { background: rgba(15,23,42,0.03); }
+
+/* Tiny action hints for edit forms */
+.note {
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+/* Utilities */
+.center-right { display:flex; justify-content:flex-end; gap:10px; align-items:center; }
+.kv { font-weight:700; color:#6b7280; margin-left:6px; font-size:0.92rem; }
+
+/* Responsive tweaks */
+@media (max-width:560px) {
+  .form-card { padding: 16px; border-radius:10px; }
+  .btn-area { flex-direction: column-reverse; gap:8px; align-items:stretch; }
+}
 </style>
+{% endblock %}
 
-<form method="post">
-    {{ form.hidden_tag() }}
+{% block content %}
+<div class="form-page">
+  <div class="form-card" id="form-card">
+    <h2>{{ action|capitalize }} {{ model|capitalize }}</h2>
+    <p class="form-sub">Use this form to {{ action }} a <strong>{{ model }}</strong>. Fields marked optional can be left blank.</p>
 
-    {# ===================== USERS ===================== #}
-    {% if model == "users" %}
-        {{ form.first_name.label }}<br>{{ form.first_name() }}<br><br>
-        {{ form.last_name.label }}<br>{{ form.last_name() }}<br><br>
-        {{ form.email.label }}<br>{{ form.email() }}<br><br>
+    <form method="post" novalidate>
+      {{ form.hidden_tag() }}
 
-        {{ form.password.label }}<br>{{ form.password() }}<br>
-        {% if action == "edit" %}
-            <small style="color: gray;">Leave blank to keep current password.</small>
+      <div class="form-grid" id="form-grid">
+
+        {# ===================== USERS ===================== #}
+        {% if model == "users" %}
+            <div class="field">
+                <label class="field-label" for="{{ form.first_name.id }}">First name</label>
+                {{ form.first_name(class="") }}
+                {% if form.first_name.errors %}<div class="field-error">{{ form.first_name.errors[0] }}</div>{% endif %}
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="{{ form.last_name.id }}">Last name</label>
+                {{ form.last_name(class="") }}
+                {% if form.last_name.errors %}<div class="field-error">{{ form.last_name.errors[0] }}</div>{% endif %}
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="{{ form.email.id }}">Email</label>
+                {{ form.email(class="") }}
+                {% if form.email.errors %}<div class="field-error">{{ form.email.errors[0] }}</div>{% endif %}
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="{{ form.role.id }}">Role</label>
+                {{ form.role(class="") }}
+                {% if form.role.errors %}<div class="field-error">{{ form.role.errors[0] }}</div>{% endif %}
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="{{ form.password.id }}">Password</label>
+                {{ form.password(class="") }}
+                {% if action == "edit" %}<div class="help-text">Leave blank to keep current password.</div>{% endif %}
+                {% if form.password.errors %}<div class="field-error">{{ form.password.errors[0] }}</div>{% endif %}
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="{{ form.confirm_password.id }}">Confirm password</label>
+                {{ form.confirm_password(class="") }}
+                {% if form.confirm_password.errors %}<div class="field-error">{{ form.confirm_password.errors[0] }}</div>{% endif %}
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="{{ form.level.id }}">Level</label>
+                {{ form.level(class="") }}
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="{{ form.xp_points.id }}">XP points</label>
+                {{ form.xp_points(class="") }}
+            </div>
         {% endif %}
-        <br><br>
 
-        {{ form.confirm_password.label }}<br>{{ form.confirm_password() }}<br><br>
+        {# ===================== TERMINALS ===================== #}
+        {% if model == "terminals" %}
+            <div class="field">
+                <label class="field-label" for="{{ form.terminal_name.id }}">Terminal name</label>
+                {{ form.terminal_name(class="") }}
+                {% if form.terminal_name.errors %}<div class="field-error">{{ form.terminal_name.errors[0] }}</div>{% endif %}
+            </div>
 
-        {{ form.role.label }}<br>{{ form.role() }}<br><br>
-        {{ form.level.label }}<br>{{ form.level() }}<br><br>
-        {{ form.xp_points.label }}<br>{{ form.xp_points() }}<br><br>
-    {% endif %}
+            <div class="field">
+                <label class="field-label" for="{{ form.location.id }}">Location</label>
+                {{ form.location(class="") }}
+                {% if form.location.errors %}<div class="field-error">{{ form.location.errors[0] }}</div>{% endif %}
+            </div>
 
-    {# ===================== TERMINALS ===================== #}
-    {% if model == "terminals" %}
-        {{ form.terminal_name.label }}<br>{{ form.terminal_name() }}<br><br>
-        {{ form.location.label }}<br>{{ form.location() }}<br><br>
-        {{ form.status.label }}<br>{{ form.status() }}<br><br>
-        {{ form.is_main.label }}<br>{{ form.is_main() }}<br><br>
-    {% endif %}
+            <div class="field">
+                <label class="field-label" for="{{ form.status.id }}">Status</label>
+                {{ form.status(class="") }}
+            </div>
 
-    {# ===================== ROUTES ===================== #}
-    {% if model == "routes" %}
-        {{ form.route_name.label }}<br>{{ form.route_name() }}<br><br>
-        {{ form.start_terminal_id.label }}<br>{{ form.start_terminal_id() }}<br><br>
-        {{ form.end_terminal_id.label }}<br>{{ form.end_terminal_id() }}<br><br>
-        {{ form.estimated_time_minutes.label }}<br>{{ form.estimated_time_minutes() }}<br><br>
-    {% endif %}
+            <div class="field">
+                <label class="field-label" for="{{ form.is_main.id }}">Is main terminal?</label>
+                {{ form.is_main(class="") }}
+            </div>
+        {% endif %}
 
-    {# ===================== JEEPNEYS ===================== #}
-    {% if model == "jeepneys" %}
+        {# ===================== ROUTES ===================== #}
+        {% if model == "routes" %}
+            <div class="field">
+                <label class="field-label" for="{{ form.route_name.id }}">Route name</label>
+                {{ form.route_name(class="") }}
+            </div>
 
-    <h3>Add New Jeepney</h3>
+            <div class="field">
+                <label class="field-label" for="{{ form.start_terminal_id.id }}">Start terminal</label>
+                {{ form.start_terminal_id(class="") }}
+            </div>
 
-    <div class="form-group">
-        <label>Plate Number</label>
-        {{ form.plate_number(class="form-control", placeholder="e.g. ABC-123") }}
-    </div>
+            <div class="field">
+                <label class="field-label" for="{{ form.end_terminal_id.id }}">End terminal</label>
+                {{ form.end_terminal_id(class="") }}
+            </div>
 
-    <div class="form-group">
-        <label>Capacity</label>
-        {{ form.capacity(class="form-control", min="1") }}
-    </div>
+            <div class="field">
+                <label class="field-label" for="{{ form.estimated_time_minutes.id }}">Estimated time (minutes)</label>
+                {{ form.estimated_time_minutes(class="") }}
+            </div>
+        {% endif %}
 
-    <div class="form-group">
-        <label>Assign to Terminal</label>
-        {{ form.terminal_id(class="form-control") }}
-    </div>
+        {# ===================== JEEPNEYS ===================== #}
+        {% if model == "jeepneys" %}
+            <div class="field">
+                <label class="field-label" for="{{ form.plate_number.id }}">Plate number</label>
+                {{ form.plate_number(class="") }}
+            </div>
 
-    <div class="small-note" style="margin-top:10px; color:gray;">
-        This will create a new Jeepney record and attach it to this terminal’s queue as
-        <b>Waiting</b>.
-    </div>
-    {% endif %}
+            <div class="field">
+                <label class="field-label" for="{{ form.capacity.id }}">Capacity</label>
+                {{ form.capacity(class="") }}
+            </div>
 
-    {# ===================== TRIPS ===================== #}
-    {% if model == "trips" %}
-        {{ form.jeepney_id.label }}<br>{{ form.jeepney_id() }}<br><br>
-        {{ form.route_id.label }}<br>{{ form.route_id() }}<br><br>
-        {{ form.origin_terminal_id.label }}<br>{{ form.origin_terminal_id() }}<br><br>
-        {{ form.destination_terminal_id.label }}<br>{{ form.destination_terminal_id() }}<br><br>
-        {{ form.departure_time.label }}<br>{{ form.departure_time() }}<br><br>
-        {{ form.arrival_time.label }}<br>{{ form.arrival_time() }}<br><br>
-        {{ form.status.label }}<br>{{ form.status() }}<br><br>
-    {% endif %}
+            <div class="field">
+                <label class="field-label" for="{{ form.terminal_id.id }}">Assign to terminal</label>
+                {{ form.terminal_id(class="") }}
+            </div>
 
-    {# ===================== SEATS ===================== #}
-    {% if model == "seats" %}
-        {{ form.trip_id.label }}<br>{{ form.trip_id() }}<br><br>
-        {{ form.total_seats.label }}<br>{{ form.total_seats() }}<br><br>
-        {{ form.available_seats.label }}<br>{{ form.available_seats() }}<br><br>
-        {{ form.occupied_seats.label }}<br>{{ form.occupied_seats() }}<br><br>
-    {% endif %}
+            <div class="field-full">
+                <div class="note">This will create a new Jeepney record and attach it to this terminal’s queue as <strong>Waiting</strong>.</div>
+            </div>
+        {% endif %}
 
-    {# ===================== TERMINAL JEEPS ===================== #}
-    {% if model == "terminaljeeps" %}
-        {{ form.terminal_id.label }}<br>{{ form.terminal_id() }}<br><br>
-        {{ form.jeepney_id.label }}<br>{{ form.jeepney_id() }}<br><br>
-        {{ form.arrival_time.label }}<br>{{ form.arrival_time() }}<br><br>
-        {{ form.departure_time.label }}<br>{{ form.departure_time() }}<br><br>
-        {{ form.status.label }}<br>{{ form.status() }}<br><br>
-        {{ form.current_passengers.label }}<br>{{ form.current_passengers() }}<br><br>
-    {% endif %}
+        {# ===================== TRIPS ===================== #}
+        {% if model == "trips" %}
+            <div class="field">
+                <label class="field-label" for="{{ form.jeepney_id.id }}">Jeepney</label>
+                {{ form.jeepney_id(class="") }}
+            </div>
 
-    {# ===================== USER FAVORITES ===================== #}
-    {% if model == "userfavorites" %}
-        {{ form.user_id.label }}<br>{{ form.user_id() }}<br><br>
-        {{ form.terminal_id.label }}<br>{{ form.terminal_id() }}<br><br>
-        {{ form.route_id.label }}<br>{{ form.route_id() }}<br><br>
-        {{ form.label.label }}<br>{{ form.label() }}<br><br>
-    {% endif %}
+            <div class="field">
+                <label class="field-label" for="{{ form.route_id.id }}">Route</label>
+                {{ form.route_id(class="") }}
+            </div>
 
-    {# ===================== NOTIFICATIONS ===================== #}
-    {% if model == "notifications" %}
-        {{ form.user_id.label }}<br>{{ form.user_id() }}<br><br>
-        {{ form.trip_id.label }}<br>{{ form.trip_id() }}<br><br>
-        {{ form.type_nof.label }}<br>{{ form.type_nof() }}<br><br>
-        {{ form.message.label }}<br>{{ form.message() }}<br><br>
-        {{ form.is_read.label }}<br>{{ form.is_read() }}<br><br>
-    {% endif %}
+            <div class="field">
+                <label class="field-label" for="{{ form.origin_terminal_id.id }}">Origin terminal</label>
+                {{ form.origin_terminal_id(class="") }}
+            </div>
 
-    {# ===================== AUDIT LOG ===================== #}
-    {% if model == "auditlogs" %}
-        {{ form.user_id.label }}<br>{{ form.user_id() }}<br><br>
-        {{ form.table_name.label }}<br>{{ form.table_name() }}<br><br>
-        {{ form.record_id.label }}<br>{{ form.record_id() }}<br><br>
-        {{ form.action.label }}<br>{{ form.action() }}<br><br>
-        {{ form.description.label }}<br>{{ form.description() }}<br><br>
-    {% endif %}
+            <div class="field">
+                <label class="field-label" for="{{ form.destination_terminal_id.id }}">Destination terminal</label>
+                {{ form.destination_terminal_id(class="") }}
+            </div>
 
-    <div class="btn-area">
+            <div class="field">
+                <label class="field-label" for="{{ form.departure_time.id }}">Departure time</label>
+                {{ form.departure_time(class="") }}
+            </div>
 
-        <!-- SAVE BUTTON -->
+            <div class="field">
+                <label class="field-label" for="{{ form.arrival_time.id }}">Arrival time</label>
+                {{ form.arrival_time(class="") }}
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="{{ form.status.id }}">Status</label>
+                {{ form.status(class="") }}
+            </div>
+        {% endif %}
+
+        {# ===================== SEATS ===================== #}
+        {% if model == "seats" %}
+            <div class="field">
+                <label class="field-label" for="{{ form.trip_id.id }}">Trip</label>
+                {{ form.trip_id(class="") }}
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="{{ form.total_seats.id }}">Total seats</label>
+                {{ form.total_seats(class="") }}
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="{{ form.available_seats.id }}">Available seats</label>
+                {{ form.available_seats(class="") }}
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="{{ form.occupied_seats.id }}">Occupied seats</label>
+                {{ form.occupied_seats(class="") }}
+            </div>
+        {% endif %}
+
+        {# ===================== TERMINAL JEEPS ===================== #}
+        {% if model == "terminaljeeps" %}
+            <div class="field">
+                <label class="field-label" for="{{ form.terminal_id.id }}">Terminal</label>
+                {{ form.terminal_id(class="") }}
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="{{ form.jeepney_id.id }}">Jeepney</label>
+                {{ form.jeepney_id(class="") }}
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="{{ form.arrival_time.id }}">Arrival time</label>
+                {{ form.arrival_time(class="") }}
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="{{ form.departure_time.id }}">Departure time</label>
+                {{ form.departure_time(class="") }}
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="{{ form.status.id }}">Status</label>
+                {{ form.status(class="") }}
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="{{ form.current_passengers.id }}">Current passengers</label>
+                {{ form.current_passengers(class="") }}
+            </div>
+        {% endif %}
+
+        {# ===================== USER FAVORITES ===================== #}
+        {% if model == "userfavorites" %}
+            <div class="field">
+                <label class="field-label" for="{{ form.user_id.id }}">User</label>
+                {{ form.user_id(class="") }}
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="{{ form.terminal_id.id }}">Terminal</label>
+                {{ form.terminal_id(class="") }}
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="{{ form.route_id.id }}">Route</label>
+                {{ form.route_id(class="") }}
+            </div>
+
+            <div class="field-full">
+                <label class="field-label" for="{{ form.label.id }}">Label</label>
+                {{ form.label(class="") }}
+            </div>
+        {% endif %}
+
+        {# ===================== NOTIFICATIONS ===================== #}
+        {% if model == "notifications" %}
+            <div class="field">
+                <label class="field-label" for="{{ form.user_id.id }}">User</label>
+                {{ form.user_id(class="") }}
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="{{ form.trip_id.id }}">Trip</label>
+                {{ form.trip_id(class="") }}
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="{{ form.type_nof.id }}">Type</label>
+                {{ form.type_nof(class="") }}
+            </div>
+
+            <div class="field-full">
+                <label class="field-label" for="{{ form.message.id }}">Message</label>
+                {{ form.message(class="") }}
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="{{ form.is_read.id }}">Is read?</label>
+                {{ form.is_read(class="") }}
+            </div>
+        {% endif %}
+
+        {# ===================== AUDIT LOG ===================== #}
+        {% if model == "auditlogs" %}
+            <div class="field">
+                <label class="field-label" for="{{ form.user_id.id }}">User</label>
+                {{ form.user_id(class="") }}
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="{{ form.table_name.id }}">Table</label>
+                {{ form.table_name(class="") }}
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="{{ form.record_id.id }}">Record ID</label>
+                {{ form.record_id(class="") }}
+            </div>
+
+            <div class="field-full">
+                <label class="field-label" for="{{ form.action.id }}">Action</label>
+                {{ form.action(class="") }}
+            </div>
+
+            <div class="field-full">
+                <label class="field-label" for="{{ form.description.id }}">Description</label>
+                {{ form.description(class="") }}
+            </div>
+        {% endif %}
+
+      </div> {# end form-grid #}
+
+      <div class="btn-area">
         <button class="save-btn" type="submit">
-            {{ action|capitalize }}
+          💾 {{ action|capitalize }}
         </button>
 
-        <!-- CANCEL BUTTON -->
         <a href="{{ url_for('view') }}" class="cancel-btn">
-            ✖ Cancel
+          ✖ Cancel
         </a>
+      </div>
 
-    </div>
+    </form>
+  </div>
+</div>
 
-</form>
+<script>
+  // autofocus first visible input
+  document.addEventListener('DOMContentLoaded', ()=>{
+    const first = document.querySelector('.form-card input, .form-card select, .form-card textarea');
+    if(first) first.focus();
 
+    // small models that should use compact layout
+    const smallModels = ["userfavorites", "notifications", "auditlogs"];
+    const modelName = "{{ model|lower }}";
+
+    const formGrid = document.getElementById('form-grid');
+    const formCard = document.getElementById('form-card');
+
+    // Option 1: if model is in the smallModels list -> compact
+    if (smallModels.indexOf(modelName) !== -1) {
+      formGrid.classList.add('compact');
+      formCard.classList.add('compact');
+    } else {
+      // Option 2: fallback: auto-detect by counting number of visible fields
+      // If there are <= 4 input/select/textarea visible -> compact
+      const inputs = Array.from(document.querySelectorAll('#form-grid input, #form-grid select, #form-grid textarea'))
+                          .filter(el => el.offsetParent !== null); // visible
+      if (inputs.length <= 4) {
+        formGrid.classList.add('compact');
+        formCard.classList.add('compact');
+      }
+    }
+  });
+</script>
 {% endblock %}

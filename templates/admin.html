@@ -1,12 +1,204 @@
 {% extends "base.html" %}
-{% block title %} admin {% endblock %}
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block head %}
+<style>
+:root{
+  --bg: linear-gradient(180deg,#e6fffb,#d6fbf6);
+  --card: #ffffff;
+  --accent-1: #06b6d4;
+  --accent-2: #0ea5a9;
+  --muted: #6b7280;
+  --radius: 12px;
+  --shadow: 0 10px 30px rgba(2,6,23,0.06);
+}
+
+.admin-page {
+  min-height: 70vh;
+  background: var(--bg);
+  padding: 28px;
+  box-sizing: border-box;
+}
+
+/* container */
+.admin-wrap {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* header */
+.admin-header {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-bottom:18px;
+}
+.admin-header h1 { margin:0; font-size:1.4rem; color:#073642; }
+.admin-header p { margin:4px 0 0; color:var(--muted); }
+
+/* action area */
+.actions {
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+.btn {
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:10px 14px;
+  border-radius:10px;
+  border:none;
+  cursor:pointer;
+  font-weight:700;
+  font-size:14px;
+  text-decoration:none;
+  color:#fff;
+}
+.btn-primary {
+  background: linear-gradient(90deg,var(--accent-1),var(--accent-2));
+  box-shadow: 0 8px 20px rgba(6,182,212,0.12);
+}
+.btn-ghost {
+  background:transparent;
+  color:#073642;
+  border:1px solid rgba(2,6,23,0.06);
+  padding:8px 12px;
+  font-weight:600;
+}
+
+/* cards row */
+.cards {
+  display:grid;
+  grid-template-columns: repeat(3,1fr);
+  gap:12px;
+  margin-top:18px;
+}
+.card {
+  background:var(--card);
+  border-radius:var(--radius);
+  padding:14px;
+  box-shadow:var(--shadow);
+  border:1px solid rgba(2,6,23,0.03);
+}
+.card h3 { margin:0 0 8px 0; font-size:15px; color:#073642; }
+.card p { margin:0; color:var(--muted); font-size:13px; }
+
+/* actions list */
+.link-list {
+  margin-top:14px;
+}
+.link-list a {
+  display:block;
+  padding:10px 12px;
+  border-radius:8px;
+  text-decoration:none;
+  color:#073642;
+  background: #f8fffe;
+  border:1px solid rgba(2,6,23,0.03);
+  margin-bottom:8px;
+  font-weight:600;
+}
+
+/* table preview */
+.preview {
+  margin-top:18px;
+}
+.preview table {
+  width:100%;
+  border-collapse:collapse;
+  font-size:14px;
+}
+.preview th, .preview td {
+  padding:8px 10px;
+  border-bottom:1px solid rgba(2,6,23,0.04);
+  text-align:left;
+}
+.preview th {
+  background:#f2fdfc;
+  font-weight:700;
+}
+
+/* responsive */
+@media (max-width:920px){
+  .cards { grid-template-columns: repeat(2,1fr); }
+}
+@media (max-width:640px){
+  .cards { grid-template-columns: 1fr; }
+  .actions { width:100%; justify-content:flex-start; }
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<h1> admin</h1>
+<div class="admin-page">
+  <div class="admin-wrap">
 
-<button type="button" class="btn btn-outline-primary"><a href="{{ url_for('view') }}">view_data</a></button>
-<button type="button" class="btn btn-outline-primary"><a href="{{ url_for('logout') }}">view_data</a></button>
+    <div class="admin-header">
+      <div>
+        <h1>Admin</h1>
+        <p>Quick access to database viewer, audit logs, and account actions.</p>
+      </div>
 
-<a href="{{ url_for('auditlogs_page') }}">Audit Logs</a>
+      <div class="actions">
+        <a class="btn btn-primary" href="{{ url_for('view') }}">📊 View Database</a>
+        <a class="btn btn-ghost" href="{{ url_for('auditlogs_page') }}">📝 Audit Logs</a>
+        <a class="btn btn-ghost" href="{{ url_for('logout') }}">🔒 Logout</a>
+      </div>
+    </div>
 
+    <div class="cards">
+      <div class="card">
+        <h3>Database Viewer</h3>
+        <p>Inspect and manage rows across all tables (users, terminals, jeepneys, trips, etc.).</p>
+        <div class="link-list">
+          <a href="{{ url_for('view') }}">Open Database Viewer →</a>
+        </div>
+      </div>
 
+      <div class="card">
+        <h3>Audit Logs</h3>
+        <p>See recent inserts, updates, and deletes with user & timestamp details.</p>
+        <div class="link-list">
+          <a href="{{ url_for('auditlogs_page') }}">Open Audit Logs →</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>System</h3>
+        <p>Administrative actions like clearing caches or running maintenance tasks.</p>
+        <div class="link-list">
+          <!-- placeholder for future admin tasks -->
+          <a href="{{ url_for('logout') }}">Sign out</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- optional preview area: show a few rows from Users (if available) -->
+    {% if data is defined and data.users %}
+    <div class="preview card" style="margin-top:18px;">
+      <h3>Recent Users</h3>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>Name</th><th>Email</th><th>Role</th></tr>
+        </thead>
+        <tbody>
+          {% for u in data.users[:6] %}
+            <tr>
+              <td>{{ u.user_id }}</td>
+              <td>{{ u.first_name }} {{ u.last_name }}</td>
+              <td>{{ u.email }}</td>
+              <td>{{ u.role }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
 {% endblock %}

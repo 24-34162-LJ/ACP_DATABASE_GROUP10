@@ -1,0 +1,124 @@
+:root{
+    --bg:#f6f8fb;
+    --card:#ffffff;
+    --muted:#6b7280;
+    --accent:#2563eb;
+    --accent-weak: rgba(37,99,235,0.08);
+    --radius:12px;
+    --shadow: 0 6px 18px rgba(29,31,41,0.06);
+    --danger:#ef4444;
+}
+
+body {
+    background: linear-gradient(180deg, var(--bg), #eef2f7 120%);
+    font-family: 'Inter', system-ui;
+    color: #111827;
+    padding: 28px;
+}
+
+.favorites-wrap {
+    max-width: 980px;
+    margin: 0 auto;
+}
+
+h2 {
+    font-size: 1.5rem;
+    margin-bottom: 12px;
+    color: #0f172a;
+}
+
+a.back-link {
+    color: var(--muted);
+    text-decoration:none;
+    font-size:0.95rem;
+    display:inline-block;
+    margin-bottom: 18px;
+}
+a.back-link:hover {
+    color: var(--accent);
+    text-decoration:underline;
+}
+
+.favorites-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px;
+}
+
+table.fav-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.fav-table th {
+    text-align: left;
+    padding: 12px 10px;
+    color: #0b1220;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+}
+
+.fav-table td {
+    padding: 12px 10px;
+    border-bottom: 1px dashed rgba(0,0,0,0.06);
+}
+
+.fav-table tr:hover {
+    background: var(--accent-weak);
+}
+
+button {
+    padding: 7px 12px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border: none;
+}
+
+button[type="submit"] {
+    background: var(--accent);
+    color: white;
+}
+
+button.delete-btn {
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid rgba(239,68,68,0.3);
+}
+
+input[type="text"] {
+    border: 1px solid rgba(0,0,0,0.2);
+    padding: 7px 10px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    width: 150px;
+}
+
+@media (max-width: 820px) {
+    .fav-table, .fav-table thead, .fav-table tbody,
+    .fav-table th, .fav-table td, .fav-table tr {
+        display: block;
+    }
+    .fav-table thead { display: none; }
+
+    .fav-table tr {
+        margin-bottom: 14px;
+        background: var(--card);
+        padding: 12px;
+        border-radius: 10px;
+        box-shadow: var(--shadow);
+    }
+
+    .fav-table td {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+    }
+
+    .fav-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--muted);
+        flex: 0 0 40%;
+    }
+}

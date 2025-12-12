@@ -1,37 +1,175 @@
 {% extends "base.html" %}
-{% block title %} HOME {% endblock %}
+{% block title %}Welcome — MAYJEEPBA?{% endblock %}
+
+{% block head %}
+<style>
+/* === COLORS & VARIABLES === */
+:root {
+  --primary: #0ea5a9;
+  --secondary: #06b6d4;
+  --dark: #062c30;
+  --muted: #6b7280;
+  --card-bg: #ffffff;
+  --radius: 16px;
+  --shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+}
+
+/* === HERO SECTION === */
+.hero {
+  padding: 80px 0;
+  background: linear-gradient(135deg, rgba(14,165,169,0.12), rgba(6,182,212,0.10));
+}
+
+.hero-container {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: grid;
+  grid-template-columns: 1fr 500px;
+  gap: 40px;
+  align-items: center;
+}
+
+.hero-title {
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 800;
+  color: var(--dark);
+  margin-bottom: 14px;
+  line-height: 1.1;
+}
+
+.hero-sub {
+  font-size: 1.1rem;
+  color: var(--muted);
+  margin-bottom: 24px;
+}
+
+.hero-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.btn-main {
+  background: linear-gradient(90deg, var(--secondary), var(--primary));
+  padding: 12px 22px;
+  border-radius: 10px;
+  font-weight: 700;
+  color: #fff;
+  border: none;
+  text-decoration: none;
+  font-size: 1rem;
+  box-shadow: var(--shadow);
+}
+
+.btn-outline {
+  padding: 12px 22px;
+  border-radius: 10px;
+  font-weight: 700;
+  border: 2px solid var(--primary);
+  color: var(--primary);
+  background: transparent;
+  text-decoration: none;
+  font-size: 1rem;
+}
+
+.hero-img-card {
+  background: #ffffffb3;
+  border-radius: var(--radius);
+  padding: 18px;
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(0,0,0,0.04);
+}
+
+/* === FEATURES SECTION === */
+.features {
+  max-width: 1100px;
+  margin: 50px auto;
+  padding: 0 20px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.feature-card {
+  background: var(--card-bg);
+  padding: 20px;
+  border-radius: var(--radius);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+}
+
+.feature-card h4 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--dark);
+}
+
+.feature-card p {
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 900px) {
+  .hero-container {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+  .hero-buttons {
+    justify-content: center;
+  }
+  .features {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<section class="hero-section bg-primary py-5">
-    <div class="container">
-        <div class="row align-items-center">
 
-            <!-- LEFT SIDE TEXT -->
-            <div class="col-md-6">
-                <h1 class="display-4 fw-bold text-white">
-                    Send packages hassle-free with MAYJEEPBA?
-                </h1>
-                <p class="lead text-white mt-3">
-                    Fast, reliable, and easy transportation.
-                </p>
+<!-- ================= HERO SECTION ================= -->
+<section class="hero">
+  <div class="hero-container">
+    
+    <!-- LEFT: TEXT -->
+    <div>
+      <h1 class="hero-title">Your Easy Jeepney Travel & Package Companion</h1>
+      <p class="hero-sub">
+        Check routes, track jeepneys, save favorites, and send packages hassle-free with MAYJEEPBA?
+      </p>
 
-                <div class="d-flex gap-3 mt-4">
-                    <a href="{{ url_for('sign') }}" class="btn btn-dark btn-lg">SIGN IN</a>
-                </div>
-            </div>
-
-            <!-- RIGHT SIDE IMAGE -->
-            <div class="col-md-6 text-center">
-                <picture>
-                    <source srcset="{{ url_for('static', filename='images/jeep.png') }}" type="image/svg+xml" />
-                    <img
-                        src="{{ url_for('static', filename='images/jeep.png') }}"
-                        class="img-fluid"
-                        alt="image desc"
-                    />
-                </picture>
-            </div>
-
-        </div>
+      <div class="hero-buttons">
+        <a href="{{ url_for('sign') }}" class="btn-main">Sign In / Create Account</a>
+        <a href="{{ url_for('search') }}" class="btn-outline">Search Routes</a>
+      </div>
     </div>
+
+    <!-- RIGHT: IMAGE -->
+    <div class="hero-img-card">
+      <img src="{{ url_for('static', filename='images/jeep.png') }}" alt="Jeepney" class="img-fluid">
+    </div>
+
+  </div>
 </section>
+
+<!-- ================= FEATURE ROW ================= -->
+<section class="features">
+  <div class="feature-card">
+    <h4>🚚 Hassle-free package sending</h4>
+    <p>Quick, simple, and reliable package sending using our jeepney partner network.</p>
+  </div>
+
+  <div class="feature-card">
+    <h4>📍 Route & terminal search</h4>
+    <p>Easily find jeepney routes and terminals anywhere in Batangas.</p>
+  </div>
+
+  <div class="feature-card">
+    <h4>⭐ Save favorites</h4>
+    <p>Bookmark your preferred terminals and routes for fast access and updates.</p>
+  </div>
+</section>
+
 {% endblock %}
