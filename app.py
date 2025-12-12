@@ -26,7 +26,7 @@ MAIN_TERMINAL_ID = 1
 app = Flask(__name__, instance_relative_config=True)
 os.makedirs(app.instance_path, exist_ok=True)
 
-db_path = os.path.join(app.instance_path, 'jeep.db')
+db_path = os.path.join(app.instance_path, 'man.db')
 
 app.config['SECRET_KEY'] = 'lj123'
 app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{db_path.replace('\\','/')}"
@@ -448,56 +448,140 @@ def Add():
 @app.route("/add/<model>", methods=["GET", "POST"])
 def add_record(model):
     model = model.lower()
-    ModelClass = MODEL_MAP[model]
-    FormClass = FORM_MAP[model]
+    ModelClass = MODEL_MAP.get(model)
+    FormClass = FORM_MAP.get(model)
+
+    if ModelClass is None or FormClass is None:
+        abort(404)
 
     form = FormClass()
 
     # important: set choices BEFORE validate_on_submit
     set_form_choices(form, model)
 
-    if form.validate_on_submit():
-        # special case for jeepneys because we also create TerminalJeepneys
-        if model == "jeepneys":
-            item = Jeepney(
-                plate_number=form.plate_number.data,
-                capacity=form.capacity.data,
-                status="Available"
-            )
-            db.session.add(item)
-            db.session.flush()  # get jeepney_id
+    # Debug: print form data/errors to server log when POSTing
+    if request.method == "POST":
+        print("ADD FORM POST to /add/{} -- form.data:".format(model), form.data)
+        print("ADD FORM ERRORS:", form.errors)
 
-            # also attach to selected terminal
-            tj = TerminalJeepneys(
-                terminal_id=form.terminal_id.data,
-                jeepney_id=item.jeepney_id,
-                arrival_time=datetime.utcnow(),
-                status="Waiting",
-                current_passengers=0
-            )
-            db.session.add(tj)
+    if form.validate_on_submit():
+        try:
+            # ------------------ SPECIAL CASE: JEEPNEYS ------------------
+            if model == "jeepneys":
+                item = Jeepney(
+                    plate_number=form.plate_number.data,
+                    capacity=form.capacity.data,
+                    status="Available"
+                )
+                db.session.add(item)
+                db.session.flush()  # so jeepney_id is available
+
+                # also attach to selected terminal (terminal_id choice filled earlier)
+                tj = TerminalJeepneys(
+                    terminal_id=form.terminal_id.data,
+                    jeepney_id=item.jeepney_id,
+                    arrival_time=datetime.utcnow(),
+                    status="Waiting",
+                    current_passengers=0
+                )
+                db.session.add(tj)
+                db.session.flush()
+
+                create_audit_log(
+                    action="INSERT",
+                    table_name="jeepneys",
+                    record_id=item.jeepney_id,
+                    description=f"Added jeepney {item.plate_number} with capacity {item.capacity}."
+                )
+                create_audit_log(
+                    action="INSERT",
+                    table_name="terminaljeeps",
+                    record_id=tj.terminal_jeep_id,
+                    description=f"Assigned jeepney {item.plate_number} to terminal_id={tj.terminal_id}."
+                )
+
+                db.session.commit()
+                flash("Jeepney added successfully.", "success")
+                return redirect(url_for("view"))
+
+            # ------------------ SPECIAL CASE: USERFAVORITES ------------------
+            if model == "userfavorites":
+                # Prefer the logged-in user
+                fav_user_id = session.get("user_id")
+                terminal_id = form.terminal_id.data or None
+                route_id = form.route_id.data or None
+                label = (form.label.data or "").strip()
+                if not label:
+                    label = f"Fav route {route_id} @ terminal {terminal_id}"
+
+                fav = Userfavorite(
+                    user_id=fav_user_id,
+                    terminal_id=terminal_id,
+                    route_id=route_id,
+                    label=label
+                )
+                db.session.add(fav)
+                db.session.flush()
+
+                create_audit_log(
+                    action="INSERT",
+                    table_name="userfavorites",
+                    record_id=fav.favorite_id,
+                    description=f"Added favorite (terminal_id={fav.terminal_id}, route_id={fav.route_id})."
+                )
+
+                db.session.commit()
+                flash("Favorite added successfully!", "success")
+                # redirect to favorites list for user
+                return redirect(url_for("favorites_page"))
+
+            # ------------------ GENERIC CREATE FOR OTHER MODELS ------------------
+            # Create instance and populate from WTForm (field names must match model attrs)
+            item = ModelClass()
+            form.populate_obj(item)
+
+            # If model requires user assignment and none provided, optionally set it
+            if hasattr(item, "user_id") and not getattr(item, "user_id", None):
+                # Only set if a session user exists
+                if session.get("user_id"):
+                    item.user_id = session.get("user_id")
+
+            db.session.add(item)
             db.session.flush()
 
-            # 🔹 AUDIT LOG
+            # Determine primary key column value for audit logging
+            pk_value = None
+            try:
+                # Use SQLAlchemy table metadata to find primary key column name(s)
+                table = getattr(item.__class__, "__table__", None)
+                if table is not None:
+                    for col in table.columns:
+                        if col.primary_key:
+                            pk_value = getattr(item, col.name, None)
+                            break
+            except Exception:
+                pk_value = None
+
             create_audit_log(
                 action="INSERT",
-                table_name="jeepneys",
-                record_id=item.jeepney_id,
-                description=f"Added jeepney {item.plate_number} with capacity {item.capacity}."
-            )
-            create_audit_log(
-                action="INSERT",
-                table_name="terminaljeeps",
-                record_id=tj.terminal_jeep_id,
-                description=f"Assigned jeepney {item.plate_number} to terminal_id={tj.terminal_id}."
+                table_name=model,
+                record_id=pk_value,
+                description=f"Added {model} record."
             )
 
             db.session.commit()
+            flash(f"{model.capitalize()} added successfully!", "success")
             return redirect(url_for("view"))
 
-        # TODO: if you add generic create for other models, you can also
-        # call create_audit_log() there
+        except Exception as e:
+            # rollback and log detailed exception for debugging
+            db.session.rollback()
+            current_app.logger.exception("Error adding record for model=%s", model)
+            flash("Error adding record: " + str(e), "danger")
+            # keep the user on the add page so they can correct input
+            return render_template("add.html", form=form, model=model, action="add")
 
+    # If GET or validation failed, show the add form
     return render_template("add.html", form=form, model=model, action="add")
 
 @app.route("/favorites/add", methods=["POST"])
