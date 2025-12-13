@@ -5,372 +5,280 @@
   <title>Jeep Terminal - 4 Terminals + Main Destination</title>
 
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background:#f3f3f3;
-      padding:20px;
-    }
+  /* ---------- GLOBAL ---------- */
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
 
+  :root{
+    --bg:#f4f7fb;
+    --card:#ffffff;
+    --muted:#8b8f96;
+    --accent:#4a6cf7;
+    --jeep-yellow:#ffdf7a;
+    --panel-radius:12px;
+    --soft-shadow: 0 6px 18px rgba(16,24,40,0.06);
+  }
 
-    /* ===================== LAYOUT GRID ===================== */
-    .layout {
-      display:grid;
-      grid-template-columns:260px 1fr;   /* left narrow, right wide */
-      grid-template-rows:auto auto;      /* 2 rows */
-      grid-template-areas:
-        "info main"
-        "queue origin";
-      gap:20px;
-    }
+  html,body{
+    height:100%;
+    margin:0;
+    font-family:"Inter", Arial, sans-serif;
+    background: linear-gradient(180deg,var(--bg), #eef2f7 120px);
+    color:#222;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    padding:22px;
+    box-sizing:border-box;
+  }
 
-    .panel,
-    .panel1 {
-      background:#fff;
-      border-radius:8px;
-      box-shadow:0 0 5px rgba(0,0,0,.1);
-      padding:12px 15px 18px;
-    }
+  h3{
+    margin:0 0 10px 0;
+    font-size:18px;
+    font-weight:600;
+    color:#222;
+    letter-spacing:0.2px;
+  }
 
-    /* place each panel in the grid */
-    #infoPanel {
-      grid-area: info;
-    }
+  /* ---------- GRID LAYOUT ---------- */
+  .layout{
+    display:grid;
+    grid-template-columns:260px 1fr;
+    grid-template-rows:auto auto;
+    grid-template-areas:
+      "info main"
+      "queue origin";
+    gap:20px;
+    align-items:start;
+  }
 
-    #mainTerminalPanel {
-      grid-area: main;
-    }
+  .panel, .panel1{
+    background:var(--card);
+    border-radius:var(--panel-radius);
+    padding:16px;
+    box-shadow:var(--soft-shadow);
+    border: 1px solid rgba(16,24,40,0.03);
+  }
 
-    #queuePanel {
-      grid-area: queue;
-    }
+  #infoPanel{ grid-area:info; }
+  #mainTerminalPanel{ grid-area:main; }
+  #queuePanel{ grid-area:queue; }
+  #originPanel{ grid-area:origin; }
 
-    #originPanel {
-      grid-area: origin;
-    }
+  /* ---------- INFO PANEL ---------- */
+  #infoPanel p{
+    margin:8px 0;
+    color:var(--muted);
+    font-size:14px;
+  }
+  #infoPanel strong{ color:#333; font-weight:600; }
 
-    /* ===================== ACTIVE JEEPS (4 TERMINALS) ===================== */
-    .jeep-grid {
-      display:grid;
-      grid-template-columns:repeat(2, auto);
-      gap:50px 150px;  /* row, column */
-      justify-content:center;
-      margin-top:20px;
-    }
+  /* ---------- JEEP (vertical base) ---------- */
+  .jeep-vertical, .main-jeep, .origin-jeep {
+    transition: transform .18s ease, box-shadow .18s ease;
+    cursor:pointer;
+  }
+  .jeep-vertical:hover, .main-jeep:hover, .origin-jeep:hover{
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 10px 30px rgba(16,24,40,0.12);
+  }
 
-    /* base vertical jeep (facing down / front view) */
-    .jeep-vertical {
-      width:90px;
-      height:180px;
-      border-radius:60px 60px 10px 10px;
-      border:2px solid #555;
-      background:#fffde7;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:flex-end;
-      padding-bottom:8px;
-      cursor:pointer;
-      position:relative;
-      transition:0.2s;
-    }
+  /* base vertical jeep (portrait) */
+  .jeep-vertical{
+    width:90px;
+    height:180px;
+    border-radius:60px 60px 12px 12px;
+    border:2px solid rgba(0,0,0,0.12);
+    background: linear-gradient(180deg,#fffef0,#fff9c4);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-end;
+    padding-bottom:10px;
+    position:relative;
+    box-shadow: inset 0 -6px 12px rgba(0,0,0,0.02);
+  }
+  .jeep-vertical::before{
+    content:"";
+    position:absolute;
+    top:10px;
+    left:50%;
+    transform:translateX(-50%);
+    width:62px;
+    height:36px;
+    background:#d7e9ff;
+    border:2px solid rgba(0,0,0,0.14);
+    border-radius:20px;
+  }
+  .terminal-label{ font-size:12px; color:var(--muted); margin-bottom:4px; }
+  .jeep-id{ font-weight:700; font-size:14px; color:#222; }
+  .jeep-count{ font-size:12px; color:var(--muted); }
 
-    .jeep-vertical:hover { transform:scale(1.05); }
+  /* flip styling kept (top jeeps show back view) */
+  .jeep-flip{ transform: scaleY(-1); }
+  .jeep-flip .terminal-label,
+  .jeep-flip .jeep-id,
+  .jeep-flip .jeep-count { transform: scaleY(-1); }
 
-    /* windshield on top */
-    .jeep-vertical::before {
-      content:"";
-      position:absolute;
-      top:8px;
-      left:50%;
-      transform:translateX(-50%);
-      width:60px;
-      height:35px;
-      background:#d7e9ff;
-      border:2px solid #333;
-      border-radius:20px;
-    }
+  /* ---------- MAIN JEEP — centered perfectly ---------- */
+  .main-jeep-wrapper{
+    display:flex;
+    justify-content:center;
+    align-items:center;      /* vertical center */
+    height:260px;            /* gives vertical space to center in panel */
+    padding:6px 0;
+  }
 
-    /* TOP JEEPS: flip (back view) */
-    .jeep-flip {
-      transform:scaleY(-1);         /* flip whole jeep */
-    }
-    .jeep-flip .terminal-label,
-    .jeep-flip .jeep-id,
-    .jeep-flip .jeep-count {
-      transform:scaleY(-1);         /* text back to normal */
-    }
+  /* ensure responsive smaller heights still center */
+  @media (max-height:620px){
+    .main-jeep-wrapper{ height:200px; }
+  }
+  @media (max-width:720px){
+    .layout{ grid-template-columns:1fr; grid-template-areas:"info" "main" "queue" "origin"; }
+    .main-jeep-wrapper{ height:220px; }
+  }
 
-    .terminal-label {
-      font-size:12px;
-      margin-bottom:2px;
-    }
-    .jeep-id { font-weight:bold; font-size:13px; }
-    .jeep-count { font-size:12px; }
+  .main-jeep-box{ display:flex; flex-direction:column; align-items:center; gap:8px; }
+  .main-jeep-label{ font-weight:700; color:var(--muted); font-size:14px; }
 
-    /* ===================== MAIN TERMINAL JEEP (CENTER) ===================== */
-    .main-jeep-wrapper {
-      display:flex;
-      justify-content:center;
-      margin-top:10px;
-    }
+  .main-jeep{
+    width:110px;
+    height:210px;
+    border-radius:70px 70px 12px 12px;
+    border:3px solid rgba(0,0,0,0.14);
+    background: linear-gradient(180deg, #fff3c2, var(--jeep-yellow));
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-end;
+    padding-bottom:12px;
+    position:relative;
+    box-shadow: 0 10px 28px rgba(16,24,40,0.10);
+  }
+  .main-jeep::before{
+    content:"";
+    position:absolute;
+    top:12px;
+    left:50%;
+    transform:translateX(-50%);
+    width:72px;
+    height:40px;
+    background:#d7e9ff;
+    border-radius:24px;
+    border:2px solid rgba(0,0,0,0.14);
+  }
+  .main-jeep-empty{ opacity:0.62; filter:grayscale(.05); }
 
-    .main-jeep-box {
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      gap:6px;
-    }
+  /* ---------- QUEUE (horizontal cars) ---------- */
+  .queue-cars{ display:flex; gap:12px; flex-wrap:wrap; margin-top:12px; align-items:center; }
+  .jeep-horizontal{
+    min-width:150px;
+    height:84px;
+    border-radius:18px 50px 50px 18px;
+    border:2px solid rgba(0,0,0,0.10);
+    background: linear-gradient(90deg,#fffef0,#fff9c4);
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:flex-start;
+    padding:10px 14px;
+    position:relative;
+    box-shadow: inset 0 -6px 10px rgba(0,0,0,0.02);
+  }
+  .jeep-horizontal::before{
+    content:"";
+    position:absolute;
+    left:10px;
+    top:50%;
+    transform:translateY(-50%);
+    width:28px;
+    height:38px;
+    background:#d7e9ff;
+    border-radius:8px;
+    border:2px solid rgba(0,0,0,0.14);
+  }
+  .jeep-horizontal .jeep-id{ font-weight:700; margin-left:36px; font-size:13px; }
+  .jeep-horizontal .jeep-count{ margin-left:36px; color:var(--muted); font-size:13px; }
 
-    .main-jeep-label {
-      font-weight:bold;
-      margin-bottom:4px;
-    }
+  /* ---------- ORIGIN GRID & ORIGIN JEEPS ---------- */
+  .jeep-grid{
+    display:grid;
+    grid-template-columns:repeat(2, 1fr);
+    gap:18px 22px;
+    justify-items:center;
+    margin-top:14px;
+  }
 
-    .main-jeep {
-      width:100px;
-      height:200px;
-      border-radius:65px 65px 10px 10px;
-      border:3px solid #444;
-      background:#ffe082;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:flex-end;
-      padding-bottom:10px;
-      cursor:pointer;
-      position:relative;
-      transition:0.2s;
-      box-shadow:0 4px 10px rgba(0,0,0,.2);
-    }
+  .origin-jeep{
+    width:120px;
+    height:200px;
+    border-radius:70px 70px 12px 12px;
+    background: linear-gradient(180deg,#fffdf0,#fff4c9);
+    border:2px solid rgba(0,0,0,0.08);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-end;
+    padding-bottom:14px;
+    position:relative;
+    box-shadow: 0 6px 18px rgba(16,24,40,0.06);
+  }
+  .origin-jeep::before{
+    content:"";
+    position:absolute;
+    top:10px;
+    left:50%;
+    transform:translateX(-50%);
+    width:62px;
+    height:36px;
+    background:#d7e9ff;
+    border-radius:16px;
+    border:2px solid rgba(0,0,0,0.12);
+  }
+  .origin-label{ font-size:12px; font-weight:700; margin-top:6px; color:#222; }
+  .origin-plate{ font-size:12px; color:var(--muted); margin-top:6px; }
+  .origin-count{ font-size:13px; font-weight:600; margin-top:8px; color:#222; }
 
-    .main-jeep::before {
-      content:"";
-      position:absolute;
-      top:10px;
-      left:50%;
-      transform:translateX(-50%);
-      width:70px;
-      height:40px;
-      background:#d7e9ff;
-      border:2px solid #333;
-      border-radius:22px;
-    }
+  /* ---------- MODAL & SEATS ---------- */
+  .modal-bg{
+    position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+    background: rgba(4,10,22,0.55); z-index:10000;
+  }
+  .modal{
+    width:380px;
+    background:var(--card);
+    padding:20px;
+    border-radius:12px;
+    box-shadow: 0 18px 50px rgba(16,24,40,0.24);
+  }
+  .jeepney-layout{
+    width:100%;
+    background:#fafafb;
+    padding:14px;
+    border-radius:10px;
+    border:1px solid rgba(0,0,0,0.06);
+    margin-top:8px;
+  }
+  .jeepney-front{ display:flex; justify-content:space-between; margin-bottom:12px; }
+  .driver-box{ flex:1; height:42px; background:#e6e9ee; border-radius:8px; display:flex; align-items:center; padding-left:10px; font-weight:700; color:#333; border:1px solid rgba(0,0,0,0.04); }
+  .front-seats{ display:flex; gap:8px; }
+  .seat-square{ width:38px; height:38px; border-radius:6px; display:flex; align-items:center; justify-content:center; position:relative; font-weight:700; color:#fff; }
+  .seat-square .seat-num{ position:absolute; bottom:4px; right:6px; font-size:10px; opacity:0.95; text-shadow:0 1px 0 rgba(0,0,0,0.25); }
+  .filled{ background:#2e8b57; }
+  .empty{ background:#d0d4d8; color:#222; }
 
-    .main-jeep:hover {
-      transform:scale(1.04);
-    }
+  .jeepney-row{ display:flex; justify-content:space-between; margin-bottom:8px; }
 
-    .main-jeep-empty {
-      opacity:0.5;
-    }
+  .close-btn{
+    margin-top:14px;
+    width:100%;
+    padding:10px;
+    background:#ef5350;
+    color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:700;
+  }
 
-    /* ===================== QUEUE JEEPS (HORIZONTAL, ARRIVED FULL JEEPS) ===================== */
-    .jeep-horizontal {
-      width:160px;
-      height:80px;
-      border-radius:20px 60px 60px 20px; /* curved left front */
-      border:2px solid #555;
-      background:#fffde7;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      padding-left:10px;
-      cursor:pointer;
-      position:relative;
-      transition:0.2s;
-    }
+  /* small helpers */
+  .muted{ color:var(--muted); font-size:13px; }
+</style>
 
-    .jeep-horizontal:hover { transform:scale(1.05); }
-
-    .jeep-horizontal::before {
-      content:"";
-      position:absolute;
-      left:8px;
-      top:50%;
-      transform:translateY(-50%);
-      width:30px;
-      height:40px;
-      background:#d7e9ff;
-      border:2px solid #333;
-      border-radius:10px;
-    }
-
-    .queue-cars {
-      display:flex;
-      flex-direction:row;
-      gap:12px;
-      margin-top:10px;
-      flex-wrap:wrap;
-    }
-
-    /* ===================== MODAL ===================== */
-    .modal-bg {
-      position:fixed;
-      left:0; top:0;
-      width:100%; height:100%;
-      background:rgba(0,0,0,0.6);
-      display:none;
-      justify-content:center;
-      align-items:center;
-      z-index:10000;
-    }
-
-    .modal {
-      background:white;
-      padding:20px;
-      width:350px;
-      border-radius:10px;
-      animation:pop 0.25s ease;
-    }
-
-    @keyframes pop {
-      from { transform:scale(0.8); opacity:0; }
-      to { transform:scale(1); opacity:1; }
-    }
-
-    /* ===================== 22-SEAT JEEPNEY LAYOUT ===================== */
-    .jeepney-layout {
-      width: 260px;
-      margin: auto;
-      background: #f0f0f0;
-      padding: 15px;
-      border-radius: 12px;
-      border: 2px solid #999;
-    }
-
-    .jeepney-front {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 12px;
-    }
-
-    .driver-box {
-      flex: 1;
-      height: 40px;
-      background: #ddd;
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      padding-left: 6px;
-      font-size: 14px;
-      font-weight: bold;
-    }
-
-    .front-seats {
-      display: flex;
-      gap: 5px;
-    }
-
-    .seat-square {
-      width: 35px;
-      height: 35px;
-      border-radius: 4px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      position:relative;
-      overflow:visible;
-    }
-
-    .seat-square > .seat-num {
-      font-size:10px;
-      position:absolute;
-      bottom:2px;
-      right:2px;
-      color:rgba(255,255,255,0.9);
-      font-weight:bold;
-      text-shadow:0 1px 0 rgba(0,0,0,0.3);
-    }
-
-    .filled { background:#4caf50; color:#fff; }
-    .empty  { background:#ccc; color:#222; }
-
-    .jeepney-row {
-      display:flex;
-      justify-content:space-between;
-      margin-bottom:6px;
-    }
-
-    .side-seat {
-      width:40px;
-      height:35px;
-      border-radius:4px;
-    }
-
-    .close-btn {
-      margin-top:15px;
-      width:100%;
-      padding:10px;
-      background:#f44336;
-      color:white;
-      border:none;
-      border-radius:5px;
-      cursor:pointer;
-    }
-    /* ===================== ORIGIN TERMINAL JEEP STYLE (Improved) ===================== */
-    .origin-jeep {
-      width: 110px;
-      height: 190px;
-      border-radius: 60px 60px 10px 10px;
-      border: 2px solid #444;
-      background: linear-gradient(#fffde7, #fff6c2);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-end;
-      cursor: pointer;
-      padding-bottom: 10px;
-      position: relative;
-      box-shadow: 0 3px 8px rgba(0,0,0,0.2);
-      transition: 0.2s;
-    }
-
-    .origin-jeep:hover {
-      transform: scale(1.06);
-    }
-
-    .origin-jeep::before {
-      content: "";
-      position: absolute;
-      top: 8px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 65px;
-      height: 38px;
-      background:#d7e9ff;
-      border: 2px solid #333;
-      border-radius: 20px;
-    }
-
-    .origin-label {
-      font-size: 11px;
-      font-weight: bold;
-      margin-bottom: 2px;
-      color: #333;
-    }
-
-    .origin-plate {
-      font-size: 12px;
-      font-weight: bold;
-      color: #444;
-    }
-
-    .origin-count {
-      font-size: 12px;
-      margin-top: 2px;
-      color: #333;
-    }
-
-    .origin-from {
-      font-size: 11px;
-      color: #777;
-      margin-top: 2px;
-    }
-
-        
-
-  </style>
 </head>
 <body>
 

@@ -1,0 +1,21 @@
+"terminal_id","terminal_name","location","status","is_main"
+1,"SM Lipa Terminal","Lipa City","active",1
+2,"Batangas City Terminal","Batangas City","active",0
+3,"Tanauan Terminal","Tanauan City","active",0
+4,"Sto. Tomas Terminal","Sto. Tomas City","active",0
+5,"Calamba Terminal","Calamba City","active",0
+6,"Malvar Terminal","Malvar Batangas","active",0
+7,"Ibaan Terminal","Ibaan Batangas","active",0
+8,"Rosario Terminal","Rosario Batangas","active",0
+9,"San Jose Terminal","San Jose Batangas","active",0
+10,"Taal Terminal","Taal Batangas","active",0
+11,"Cuenca Terminal","Cuenca Batangas","active",0
+12,"Mataasnakahoy Terminal","Mataasnakahoy Batangas","active",0
+13,"Alitagtag Terminal","Alitagtag Batangas","active",0
+14,"Balayan Terminal","Balayan Batangas","active",0
+15,"Lemery Terminal","Lemery Batangas","active",0
+16,"Nasugbu Terminal","Nasugbu Batangas","active",0
+17,"Calatagan Terminal","Calatagan Batangas","active",0
+18,"San Luis Terminal","San Luis Batangas","active",0
+19,"Lobo Terminal","Lobo Batangas","active",0
+20,"Mabini Terminal","Mabini Batangas","active",0
