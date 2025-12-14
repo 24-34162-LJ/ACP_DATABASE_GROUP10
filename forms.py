@@ -98,9 +98,18 @@ class AddTerminal(FlaskForm):
 
 # ---------- USER ----------
 class UserForm(FlaskForm):
-    first_name = StringField("First Name", validators=[DataRequired()])
-    last_name = StringField("Last Name", validators=[DataRequired()])
-    email = StringField("Email", validators=[DataRequired(), Email()])
+    first_name = StringField(
+        "First Name", 
+        validators=[DataRequired()]
+    )
+    last_name = StringField(
+        "Last Name",
+        validators=[DataRequired()]
+    )
+    email = StringField(
+        "Email", 
+        validators=[DataRequired(), Email()]
+    )
 
     # Make password OPTIONAL (so edit pages can leave blank).
     # But when provided, we require min length and matching confirm.
@@ -120,8 +129,14 @@ class UserForm(FlaskForm):
         validators=[DataRequired()],
     )
 
-    level = IntegerField("Level", validators=[DataRequired()])
-    xp_points = IntegerField("XP Points", validators=[DataRequired()])
+    level = IntegerField(
+        "Level", 
+        validators=[DataRequired()]
+    )
+    xp_points = IntegerField(
+        "XP Points", 
+        validators=[DataRequired()]
+    )
     submit = SubmitField("Save User")
 # ---------- TERMINAL ----------
 
