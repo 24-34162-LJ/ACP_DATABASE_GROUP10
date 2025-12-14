@@ -1,7 +1,7 @@
 "audit_id","user_id","table_name","record_id","action","timestamp","description"
 1,1,"users",1,"INSERT","2025-12-13 08:45:13","User account created"
 2,2,"terminals",2,"INSERT","2025-12-13 08:45:13","Terminal added"
-3,3,"routes:,3,"INSERT","2025-12-13 08:45:13","Route created"
+3,3,"routes",3,"INSERT","2025-12-13 08:45:13","Route created"
 4,4,"jeepneys",4,"UPDATE","2025-12-13 08:45:13","Jeepney status updated"
 5,5,"trips",5,"DELETE","2025-12-13 08:45:13","Updated audit description"
 6,6,"seats",6,"UPDATE","2025-12-13 08:45:13","Seat count updated"
